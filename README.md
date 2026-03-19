@@ -1,54 +1,79 @@
-# 💚 Pensão Check
+# ⚖️ Pensão Check
 
-> Controle seguro e inteligente da sua pensão alimentícia.
+App web PWA para controle de pagamentos de pensão alimentícia.
 
-Aplicativo web single-page (SPA) para registro, acompanhamento e comprovação de pagamentos de pensão alimentícia. Roda 100% no navegador — sem servidor, sem banco de dados externo.
+## Stack
 
----
+| Camada | Tecnologia |
+|---|---|
+| Frontend | HTML + CSS + JS vanilla (PWA) |
+| Hospedagem | Cloudflare Pages |
+| API | Cloudflare Workers |
+| Banco de dados | Cloudflare D1 (SQLite) |
+| Arquivos | Cloudflare R2 (S3-compatible) |
+| Auth | Google Identity Services (One Tap) |
 
-## ✨ Funcionalidades
+## Estrutura do repositório
 
-- **Dashboard** — visão geral de pagamentos e status
-- **Adicionar Pagamento** — registro com extração automática de Pix
-- **Histórico** — linha do tempo de todos os pagamentos
-- **Cofre Digital** — armazenamento seguro de documentos (JPG, PNG, PDF)
-- **Relatórios** — exportação em PDF
-- **Suporte WhatsApp** — chatbot 24h + assessoria jurídica
-- **Plano Free / Pro** — controle por beneficiários e funcionalidades
-
----
-
-## 🚀 Como usar (GitHub Pages)
-
-1. Faça um **fork** deste repositório
-2. Vá em **Settings → Pages**
-3. Em *Source*, selecione `Deploy from a branch`
-4. Selecione a branch `main` e pasta `/ (root)`
-5. Clique em **Save**
-6. Aguarde ~1 minuto e acesse `https://<seu-usuario>.github.io/<nome-do-repo>`
-
----
-
-## 🛠️ Tecnologias
-
-- HTML5 + CSS3 + JavaScript puro (sem frameworks)
-- `localStorage` para persistência de dados no navegador
-- [jsPDF](https://github.com/parallax/jsPDF) para geração de relatórios
-- Layout responsivo (mobile-first)
-
----
-
-## ⚙️ Configuração dos links WhatsApp
-
-No arquivo `index.html`, localize as constantes no início do bloco `<script>` e substitua pelos números reais:
-
-```js
-const SUPORTE_WHATS = 'https://wa.me/55XXXXXXXXXXX'; // Chatbot de suporte
-const ADVOGADO_WHATS = 'https://wa.me/55XXXXXXXXXXX'; // Advogado
+```
+/
+├── index.html        ← App principal (Cloudflare Pages serve este arquivo)
+├── worker/
+│   ├── worker.js     ← API Cloudflare Worker (D1 + R2)
+│   └── wrangler.toml ← Configuração do Worker
+└── README.md
 ```
 
----
+## Deploy
 
-## 📄 Licença
+### Frontend (Cloudflare Pages)
+Conecte este repositório no Cloudflare Pages:
+- **Framework**: None
+- **Build command**: *(vazio)*
+- **Output directory**: `/` *(raiz)*
 
-Uso privado. Todos os direitos reservados © Pensão Check.
+### Backend (Cloudflare Worker)
+```bash
+cd worker
+wrangler deploy
+```
+
+## Configuração obrigatória
+
+Antes de usar, edite o `index.html` e preencha:
+
+```js
+// Linha ~740
+const GOOGLE_CLIENT_ID = "SEU_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+```
+
+**Como obter o Google Client ID:**
+1. Acesse [console.cloud.google.com](https://console.cloud.google.com)
+2. APIs & Services → Credentials → Create OAuth 2.0 Client ID
+3. Tipo: Web application
+4. Authorized JavaScript origins: `https://pensao-check.pages.dev`
+5. Copie o Client ID gerado
+
+## Recursos
+
+- ✅ Login com Google (sem senha)
+- ✅ Upload de comprovantes para Cloudflare R2
+- ✅ Banco de dados na nuvem (D1)
+- ✅ Funciona offline (Service Worker)
+- ✅ Instalável como app (PWA)
+- ✅ Modo Demo (sem login)
+- ✅ Geração de PDF
+- ✅ Cofre de documentos
+- ✅ Alerta de pendências
+
+## Worker API Endpoints
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | /api/upload | Upload arquivo → R2 |
+| GET | /files/:key | Serve arquivo do R2 |
+| GET/POST | /api/user | Dados do usuário |
+| GET/POST | /api/pagamentos | Pagamentos |
+| DELETE | /api/pagamentos/:id | Remove pagamento |
+| GET/POST | /api/cofre | Documentos do cofre |
+| DELETE | /api/cofre/:id | Remove documento |

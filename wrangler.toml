@@ -1,0 +1,12 @@
+name = "pensao-check-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "pensao-check-files"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pensao-check-db"
+database_id = "7c115264-6967-4635-9ac8-66e0bd05b74c"
