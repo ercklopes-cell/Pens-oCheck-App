@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>Pensão Check</title>
+<!-- PWA meta -->
+<meta name="theme-color" content="#012B40"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Pensão Check"/>
+<meta name="description" content="Controle seus pagamentos de pensão alimentícia"/>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23012B40'/><text y='.9em' font-size='72' x='50%' text-anchor='middle'>⚖️</text></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- NOVO — Google Identity Services (login com Google) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --green:   #1A7A3E;
+  --green-l: #F0FDF4;
+  --green-b: #16A34A;
+  --navy:    #012B40;
+  --navy-l:  #0a3d57;
+  --orange:  #D97706;
+  --red:     #DC2626;
+  --font:    "Plus Jakarta Sans", sans-serif;
+  --g50:  #F9FAFB; --g100: #F3F4F6; --g200: #E5E7EB;
+  --g300: #D1D5DB; --g400: #9CA3AF; --g500: #6B7280;
+  --g700: #374151; --g900: #111827;
+  --radius: 12px; --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font);background:var(--g50);color:var(--g900);font-size:14px;line-height:1.5}
+
+/* ── UTILS ── */
+.hidden{display:none!important}
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap}
+.btn-g{background:var(--green);color:#fff}.btn-g:hover{background:#155d31}
+.btn-n{background:var(--navy);color:#fff}.btn-n:hover{background:var(--navy-l)}
+.btn-r{background:var(--red);color:#fff}.btn-r:hover{background:#b91c1c}
+.btn-outline{background:#fff;color:var(--g700);border:1.5px solid var(--g300)}.btn-outline:hover{border-color:var(--g400);background:var(--g50)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
+.badge-pago{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#dcfce7;color:#15803d}
+.badge-pendente{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#fef3c7;color:#b45309}
+.badge-free{background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-pro{background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:60px 20px;text-align:center;color:var(--g400)}
+.empty-icon{font-size:40px}
+.empty p{font-size:14px;color:var(--g500)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--g900);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:1000;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none}
+.overlay.show{display:block}
+
+/* ── SCREEN ── */
+.screen{display:none;width:100%;min-height:100vh}
+.screen.active{display:flex}
+
+/* ── LOGIN ── */
+#screen-login{align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,#024a6e 100%);padding:20px}
+.login-box{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
+.logo-icon{width:44px;height:44px;background:var(--navy);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;flex-shrink:0}
+.logo-text{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
+.logo-sub{font-size:11px;color:var(--g400);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.login-tabs{display:flex;background:var(--g100);border-radius:10px;padding:4px;margin-bottom:28px;gap:4px}
+.ltab{flex:1;text-align:center;padding:9px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--g500);transition:all .2s}
+.ltab.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--g700);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:9px;font-family:var(--font);font-size:14px;color:var(--g900);outline:none;transition:border-color .2s;background:#fff}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--green)}
+.frm-btn{width:100%;padding:13px;border-radius:10px;background:var(--navy);color:#fff;font-family:var(--font);font-size:15px;font-weight:700;border:none;cursor:pointer;transition:background .2s;margin-top:8px}
+.frm-btn:hover{background:var(--navy-l)}
+.frm-btn:disabled{background:var(--g300);cursor:not-allowed}
+.login-hint{font-size:12px;color:var(--g400);text-align:center;margin-top:16px}
+.link-btn{background:none;border:none;color:var(--green);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;padding:0}
+.tab-content{display:none}.tab-content.active{display:block}
+/* NOVO — Google OAuth button */
+.btn-google{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px;border-radius:10px;background:#fff;color:#1f1f1f;font-family:var(--font);font-size:15px;font-weight:600;border:1.5px solid var(--g200);cursor:pointer;transition:all .2s;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.btn-google:hover{background:#f8f8f8;border-color:var(--g300);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.btn-google svg{flex-shrink:0}
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--g400);font-size:12px}
+.login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--g200)}
+/* NOVO — loading spinner */
+.spinner-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px 20px}
+.spinner{width:36px;height:36px;border:3px solid var(--g200);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* NOVO — upload progress indicator */
+.upload-progress{display:none;align-items:center;gap:10px;padding:12px 14px;background:var(--green-l);border:1.5px solid var(--green-b);border-radius:9px;font-size:13px;font-weight:600;color:var(--green);margin-top:10px}
+.upload-progress.show{display:flex}
+.upload-progress .up-spinner{width:18px;height:18px;border:2px solid var(--green-b);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+
+/* ── APP LAYOUT ── */
+#screen-app{flex-direction:row;min-height:100vh}
+.sidebar{width:258px;min-width:258px;background:var(--navy);min-height:100vh;position:fixed;left:0;top:0;z-index:50;display:flex;flex-direction:column;transition:transform .3s}
+.sidebar.closed{transform:translateX(-100%)}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+.sb-logo-text{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px}
+.sb-logo-sub{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px}
+.sb-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.sb-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 4px;margin-top:8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;font-weight:500;transition:all .2s;border:none;background:none;width:100%;text-align:left;font-family:var(--font)}
+.sb-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-item.active{background:var(--green);color:#fff;font-weight:600}
+.sb-item .si{font-size:16px;width:20px;text-align:center}
+.sb-footer{padding:16px;border-top:1px solid rgba(255,255,255,.08)}
+.sb-user{display:flex;align-items:center;gap:10px}
+.sb-avatar{width:36px;height:36px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0}
+.sb-user-name{font-size:13px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-user-email{font-size:11px;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-logout{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:16px;padding:4px;transition:color .2s;flex-shrink:0}
+.sb-logout:hover{color:#fff}
+
+.app-main{margin-left:258px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.app-hdr{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;padding:0 26px;height:60px;gap:16px}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.hdr-hamburger{display:none;background:none;border:none;cursor:pointer;font-size:20px;color:var(--g700);padding:4px}
+#view-title{font-size:18px;font-weight:700;color:var(--g900)}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.app-cnt{padding:26px;flex:1}
+.vw{width:100%}
+
+/* ── DASHBOARD ── */
+.dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.dash-card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border-left:4px solid transparent}
+.dash-card.green{border-left-color:var(--green)}
+.dash-card.navy{border-left-color:var(--navy)}
+.dash-card.orange{border-left-color:var(--orange)}
+.dash-card.gray{border-left-color:var(--g300)}
+.dc-label{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.dc-val{font-size:24px;font-weight:800;color:var(--g900);letter-spacing:-.5px}
+.dc-sub{font-size:12px;color:var(--g400);margin-top:4px}
+.section-title{font-size:15px;font-weight:700;color:var(--g900);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.benef-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px}
+.benef-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}
+.benef-avatar{width:42px;height:42px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+.benef-name{font-size:14px;font-weight:600;color:var(--g900)}
+.benef-info{font-size:12px;color:var(--g400)}
+.last-pags{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow)}
+.lp-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100)}
+.lp-row:last-child{border-bottom:none}
+.lp-ref{font-size:13px;font-weight:600;color:var(--g900)}
+.lp-date{font-size:12px;color:var(--g400)}
+.lp-val{font-size:14px;font-weight:700;color:var(--navy)}
+.alert-banner{background:#fef3c7;border:1.5px solid #fcd34d;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e}
+
+/* ── HISTORICO ── */
+.hist-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.hist-toolbar select{padding:9px 12px;border:1.5px solid var(--g200);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--g700);background:#fff;outline:none;cursor:pointer}
+.hist-toolbar select:focus{border-color:var(--green)}
+.hist-spacer{flex:1}
+.hist-summary{display:flex;align-items:center;gap:6px;padding:10px 0;font-size:13px;color:var(--g500);border-bottom:1px solid var(--g100);margin-bottom:2px;flex-wrap:wrap}
+.hist-summary strong{color:var(--g900);font-weight:700}
+.hist-total{margin-left:auto;font-size:14px;font-weight:700;color:var(--navy)}
+.table-wrap{overflow-x:auto;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--g50);border-bottom:2px solid var(--g200)}
+th{padding:11px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--g100);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--g50)}
+.comp-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--g200);background:#fff;color:var(--g700);transition:all .15s;font-family:var(--font)}
+.comp-btn:hover{border-color:var(--navy);color:var(--navy)}
+.comp-btns{display:flex;gap:4px}
+.td-actions{display:flex;gap:4px;justify-content:flex-end}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:4px 6px;border-radius:6px;transition:background .15s}
+.icon-btn:hover{background:var(--g100)}
+
+/* ── ADICIONAR ── */
+.form-section{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px}
+.form-section-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.upload-area{border:2px dashed var(--g300);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--g50)}
+.upload-area:hover{border-color:var(--green);background:var(--green-l)}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:32px;margin-bottom:8px}
+.upload-text{font-size:13px;color:var(--g500);font-weight:500}
+.upload-sub{font-size:11px;color:var(--g400);margin-top:4px}
+.preview-area{border-radius:10px;overflow:hidden;position:relative;background:var(--g100);min-height:120px;display:flex;align-items:center;justify-content:center}
+.preview-area img{max-width:100%;max-height:240px;border-radius:8px;display:block}
+.preview-pdf{display:flex;align-items:center;justify-content:center;gap:10px;padding:20px;font-size:14px;font-weight:600;color:var(--navy)}
+.preview-clear{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:background .2s}
+.preview-clear:hover{background:rgba(0,0,0,.7)}
+.benef-checks-wrap{display:flex;flex-direction:column;gap:10px}
+.benef-checks-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.benef-checks-divider{display:flex;align-items:center;gap:8px;margin:2px 0}
+.benef-checks-divider::before,.benef-checks-divider::after{content:"";flex:1;height:1px;background:var(--g200)}
+.benef-checks-divider span{font-size:10px;color:var(--g400);font-weight:600;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+.benef-check{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--g200);border-radius:8px;cursor:pointer;transition:all .2s;font-size:13px;font-weight:500;user-select:none}
+.benef-check:has(input:checked){background:var(--green-l);border-color:var(--green-b);color:var(--green)}
+.benef-check input{accent-color:var(--green);cursor:pointer}
+.benef-check-todos{padding:8px 16px;font-weight:700;border-color:var(--navy);color:var(--navy)}
+.benef-check-todos:has(input:checked){background:#e8f0f5;border-color:var(--navy);color:var(--navy)}
+.benef-check-todos input{accent-color:var(--navy)}
+/* Config benef panel */
+.benef-add-panel{margin-top:16px;background:#fff;border:1.5px solid var(--green-b);border-left:4px solid var(--green);border-radius:10px;padding:18px 20px;animation:slideDown .2s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.benef-list-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--g100)}
+.benef-list-item:last-child{border-bottom:none}
+.benef-list-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--green-l);color:var(--green);margin-top:3px}
+.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+
+/* ── COFRE ── */
+.cofre-form{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:24px}
+.cofre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.cofre-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:transform .2s}
+.cofre-card:hover{transform:translateY(-2px)}
+.cofre-thumb{height:120px;background:var(--g100);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden}
+.cofre-thumb img{width:100%;height:100%;object-fit:cover}
+.cofre-info{padding:12px}
+.cofre-cat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g400);margin-bottom:4px}
+.cofre-desc{font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cofre-actions{display:flex;gap:6px}
+
+/* ── RELATORIOS ── */
+.rel-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.rel-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;text-align:center}
+.rel-card .rc-val{font-size:28px;font-weight:800;color:var(--navy);letter-spacing:-.5px;margin:8px 0}
+.rel-card .rc-label{font-size:12px;color:var(--g400);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.rel-actions{display:flex;gap:12px;flex-wrap:wrap}
+
+/* ── CONFIG ── */
+.config-section{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px}
+.config-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:8px}
+.benef-list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--g100)}
+.benef-list-item:last-child{border-bottom:none}
+.plan-info{display:flex;align-items:center;gap:16px;padding:16px;background:var(--g50);border-radius:10px;margin-bottom:16px}
+.plan-badge-big{font-size:14px;font-weight:700;padding:8px 20px;border-radius:30px}
+.license-input-wrap{display:flex;gap:8px}
+.license-input-wrap input{flex:1;font-family:"Courier New",monospace;letter-spacing:2px;text-transform:uppercase;font-size:15px}
+.toggle-wrap{display:flex;align-items:center;gap:12px;padding:12px 0}
+.toggle{position:relative;width:48px;height:26px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--g300);border-radius:26px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:"";position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.toggle-slider{background:var(--green)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(22px)}
+/* AJUSTADO — suporte dentro da nav, estilo chamativo */
+.sb-suporte-wrap{display:flex;flex-direction:column;gap:6px;margin-top:4px;padding:0 0 4px}
+.sb-suporte-link{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:700;color:#fff;transition:all .18s;border:none;cursor:pointer}
+.sb-suporte-link.verde{background:#16A34A}.sb-suporte-link.verde:hover{background:#15803d;transform:translateX(2px)}
+.sb-suporte-link.navy{background:#012B40}.sb-suporte-link.navy:hover{background:#024a6e;transform:translateX(2px)}
+.sb-suporte-link .si{font-size:16px;width:22px;text-align:center;flex-shrink:0;margin-top:1px}
+.sb-suporte-link .sl-text span{display:block;font-size:12px;font-weight:700;color:#fff}
+.sb-suporte-link .sl-text small{display:block;font-size:10px;font-weight:400;color:rgba(255,255,255,.65);margin-top:1px}
+/* NOVO — alerta topo */
+#alerta-topo{margin-bottom:20px;border-radius:12px;padding:14px 18px;font-size:13px;font-weight:600;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:all .3s;display:none}
+#alerta-topo.show{display:flex}
+#alerta-topo .at-icon{font-size:20px;flex-shrink:0}
+#alerta-topo .at-msg{flex:1;line-height:1.4}
+#alerta-topo.verde{background:#DCFCE7;border:1.5px solid #86EFAC;color:#166534}
+#alerta-topo.amarelo{background:#FEF9C3;border:1.5px solid #FDE047;color:#854D0E}
+#alerta-topo.vermelho{background:#FEF2F2;border:1.5px solid #FCA5A5;color:#991B1B}
+/* NOVO — painel pendentes */
+#painel-pendentes{margin-bottom:24px}
+.pendentes-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-left:4px solid var(--orange)}
+.pendentes-card.ok{border-left-color:var(--green)}
+.pc-left{display:flex;align-items:center;gap:12px}
+.pc-icon{font-size:24px}
+.pc-title{font-size:14px;font-weight:700;color:var(--g900)}
+.pc-sub{font-size:12px;color:var(--g500);margin-top:2px}
+/* NOVO — zerar dados */
+.danger-zone{border:1.5px solid #FCA5A5;border-radius:var(--radius);padding:18px 20px;background:#FFF5F5}
+.danger-zone-title{font-size:13px;font-weight:700;color:#991B1B;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.danger-zone p{font-size:12px;color:#B91C1C;margin-bottom:14px;line-height:1.5}
+
+/* ── MODAL ── */
+.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--g100)}
+.modal-hdr h3{font-size:15px;font-weight:700;color:var(--g900)}
+.modal-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--g400);padding:2px;line-height:1;transition:color .2s}
+.modal-close:hover{color:var(--g900)}
+.modal-body{padding:22px;max-height:70vh;overflow-y:auto}
+.modal-body img{max-width:100%;border-radius:8px}
+
+/* ── PWA / MOBILE ── */
+/* Safe area support for notched phones */
+:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Bottom nav — hidden on desktop */
+#bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+  background: var(--navy);
+  border-top: 1px solid rgba(255,255,255,.1);
+  padding: 6px 4px calc(6px + var(--safe-bottom));
+  flex-direction: row; align-items: stretch; justify-content: space-around;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.18);
+}
+.bn-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; flex: 1; background: none; border: none; cursor: pointer;
+  padding: 6px 2px; border-radius: 10px; transition: background .15s;
+  color: rgba(255,255,255,.5); min-height: 52px; -webkit-tap-highlight-color: transparent;
+}
+.bn-item:active { background: rgba(255,255,255,.06); }
+.bn-item.active { color: #fff; }
+.bn-item.active .bn-icon { transform: scale(1.12); }
+.bn-icon { font-size: 20px; line-height: 1; transition: transform .2s; display: block; }
+.bn-label { font-size: 10px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+.bn-add {
+  width: 40px; height: 40px; background: var(--green); border-radius: 50%;
+  display: flex !important; align-items: center; justify-content: center;
+  font-size: 22px; font-style: normal; line-height: 1; color: #fff;
+  box-shadow: 0 2px 10px rgba(26,122,62,.5); margin-bottom: 2px;
+}
+.bn-item:has(.bn-add) { gap: 0; }
+.bn-item:has(.bn-add) .bn-label { font-size: 10px; margin-top: 2px; }
+
+@media (max-width: 768px) {
+  /* Hide sidebar, show bottom nav */
+  .sidebar { transform: translateX(-100%); z-index: 70; }
+  .sidebar.open { transform: translateX(0); }
+  .app-main { margin-left: 0; }
+  .hdr-hamburger { display: flex; }
+  #bottom-nav { display: flex; }
+  /* Add bottom padding so content doesn't hide behind nav */
+  .app-cnt { padding: 16px 16px calc(80px + var(--safe-bottom)); }
+  /* Layout fixes */
+  .dash-cards { grid-template-columns: 1fr 1fr; }
+  .rel-cards { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .hist-total { margin-left: 0; }
+  .hist-summary { gap: 4px; }
+  table { min-width: 640px; }
+  .benef-grid { grid-template-columns: 1fr; }
+  .rel-actions { flex-direction: column; }
+  /* Header safe area */
+  .app-hdr { padding: 0 16px; }
+  /* Bigger touch targets */
+  .btn { min-height: 42px; }
+  .sb-item, .bn-item { min-height: 44px; }
+  /* Modal full-screen on mobile */
+  .modal { align-items: flex-end; padding: 0; }
+  .modal-box { border-radius: 20px 20px 0 0; max-height: 90vh; width: 100%; }
+  /* Toast above bottom nav */
+  .toast { bottom: calc(80px + var(--safe-bottom) + 8px); right: 16px; left: 16px; text-align: center; }
+}
+@media (max-width: 480px) {
+  .app-cnt { padding: 14px 14px calc(80px + var(--safe-bottom)); }
+  .dash-cards { grid-template-columns: 1fr 1fr; }
+  .login-box { padding: 28px 22px; }
+  .hist-toolbar { gap: 6px; }
+  .form-section { padding: 18px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+<div class="overlay" id="overlay" onclick="closeSb()"></div>
+
+<!-- ══ MODAL ══ -->
+<!-- NOVO — modal zerar dados -->
+<div class="modal" id="modal-zerar-wrap">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 style="color:#991B1B">⚠️ Ação Irreversível</h3>
+      <button class="modal-close" onclick="fecharModalZerar()">✕</button>
+    </div>
+    <div style="padding:22px">
+      <p style="font-size:13px;color:var(--g700);margin-bottom:16px;line-height:1.6">Todos os pagamentos, documentos do cofre e configurações serão <strong>apagados permanentemente</strong>. Digite sua senha para confirmar.</p>
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Senha de confirmação</label>
+      <input type="password" id="zerar-senha" placeholder="Digite sua senha..." style="width:100%;padding:11px 14px;border:1.5px solid #FCA5A5;border-radius:9px;font-family:var(--font);font-size:14px;outline:none;margin-bottom:6px" oninput="validarSenhaZerar()"/>
+      <p id="zerar-erro" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:14px"></p>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-r" id="btn-confirmar-zerar" onclick="confirmarZerar()" disabled>🗑️ Apagar tudo</button>
+        <button class="btn btn-outline" onclick="fecharModalZerar()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modal-title">Comprovante</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN LOGIN ═══════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">⚖️</div>
+      <div>
+        <div class="logo-text">Pensão Check</div>
+        <div class="logo-sub">Controle de Pagamentos</div>
+      </div>
+    </div>
+
+    <!-- NOVO — estado normal: botões de login -->
+    <div id="login-buttons">
+      <p style="font-size:13px;color:var(--g500);text-align:center;margin-bottom:20px;line-height:1.5">
+        Controle seus pagamentos de pensão de forma simples e segura.
+      </p>
+
+      <!-- Entrar com Google — Google Identity Services One Tap -->
+      <button class="btn-google" onclick="loginComGoogle()">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Entrar com Google
+      </button>
+      <!-- Fallback: botão Google renderizado se One Tap for bloqueado pelo browser -->
+      <div id="google-btn-container" style="display:flex;justify-content:center;margin-top:4px"></div>
+
+      <div class="login-divider">ou</div>
+
+      <!-- NOVO — botão Demo (sem autenticação real) -->
+      <button class="frm-btn" style="background:var(--navy)" onclick="doLoginDemo()">⚡ Entrar no modo Demo</button>
+      <p class="login-hint" style="margin-top:12px">
+        O modo Demo usa armazenamento local.<br/>
+        Para sincronização real, use o login Google.
+      </p>
+    </div>
+
+    <!-- NOVO — estado de carregando após OAuth redirect -->
+    <div id="login-loading" class="hidden">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+        <p style="font-size:13px;color:var(--g500)">Autenticando com Google…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN APP ═══════════════ -->
+<div id="screen-app" class="screen">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">⚖️</div>
+      <div>
+        <div class="sb-logo-text">Pensão Check</div>
+        <div class="sb-logo-sub">Painel</div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">Principal</div>
+      <button class="sb-item active" id="nav-dashboard"  onclick="showView('dashboard')"><span class="si">🏠</span> Dashboard</button>
+      <button class="sb-item"        id="nav-adicionar"  onclick="showView('adicionar')"><span class="si">➕</span> Novo Pagamento</button>
+      <button class="sb-item"        id="nav-historico"  onclick="showView('historico')"><span class="si">📋</span> Histórico</button>
+      <button class="sb-item"        id="nav-cofre"      onclick="showView('cofre')"><span class="si">🗂️</span> Cofre</button>
+      <button class="sb-item"        id="nav-relatorios" onclick="showView('relatorios')"><span class="si">📊</span> Relatórios</button>
+      <button class="sb-item"        id="nav-config"     onclick="showView('config')"><span class="si">⚙️</span> Configurações</button>
+      <div class="sb-suporte-wrap">
+        <a class="sb-suporte-link verde" href="https://wa.me/SEU_NUMERO?text=Oi%2C+preciso+de+ajuda+no+Pens%C3%A3o+Check" target="_blank" rel="noopener">
+          <span class="si">💬</span>
+          <div class="sl-text"><span>Suporte 24H</span><small>WhatsApp – resposta imediata</small></div>
+        </a>
+      </div>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-avatar" id="sb-avatar">D</div>
+        <div style="flex:1;min-width:0">
+          <div class="sb-user-name" id="sb-nome">Demo</div>
+          <div class="sb-user-email" id="sb-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6d090800022d1d08031e0c020e05080e06430e0200">[email&#160;protected]</a></div>
+        </div>
+        <button class="sb-logout" onclick="doLogout()" title="Sair">🚪</button>
+      </div>
+    </div>
+  </aside>
+  <main class="app-main">
+    <header class="app-hdr">
+      <div class="hdr-left">
+        <button class="hdr-hamburger" onclick="toggleSb()">☰</button>
+        <span id="view-title">Dashboard</span>
+      </div>
+      <div class="hdr-right">
+        <span id="hdr-badge" class="badge-free">FREE</span>
+        <button class="btn btn-g btn-sm" onclick="showView('adicionar')">➕ Novo</button>
+      </div>
+    </header>
+
+    <div class="app-cnt">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="vw" id="view-dashboard">
+        <!-- NOVO — alerta de status de comprovantes -->
+        <div id="alerta-topo"></div>
+        <div id="dash-alert"></div>
+        <div class="dash-cards" id="dash-cards"></div>
+        <!-- NOVO — painel de pendentes abaixo dos cards -->
+        <div id="painel-pendentes"></div>
+        <div class="section-title">👥 Beneficiários</div>
+        <div class="benef-grid" id="benef-grid"></div>
+        <div class="section-title">📄 Últimos Pagamentos</div>
+        <div class="last-pags card" id="last-pags"></div>
+      </div>
+
+      <!-- ── HISTORICO ── -->
+      <div class="vw hidden" id="view-historico">
+        <div class="hist-toolbar">
+          <select id="fano" onchange="renderH()"><option value="">Todos os anos</option></select>
+          <select id="fmes" onchange="renderH()">
+            <option value="">Todos os meses</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+            <option value="03">Março</option><option value="04">Abril</option>
+            <option value="05">Maio</option><option value="06">Junho</option>
+            <option value="07">Julho</option><option value="08">Agosto</option>
+            <option value="09">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+          <div class="hist-spacer"></div>
+          <button class="btn btn-n btn-sm" onclick="gerarPDF('completo')">📄 Gerar PDF</button>
+          <button class="btn btn-g btn-sm" onclick="showView('adicionar')">+ Novo</button>
+        </div>
+        <div class="hist-summary" id="hist-summary"></div>
+        <div class="table-wrap" id="hist-table-wrap"></div>
+      </div>
+
+      <!-- ── ADICIONAR ── -->
+      <div class="vw hidden" id="view-adicionar">
+        <div class="form-section">
+          <div class="form-section-title">📅 Referência e Pagamento</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Mês Referência</label>
+              <select id="f-mes">
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                <option value="03">Março</option><option value="04">Abril</option>
+                <option value="05">Maio</option><option value="06">Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option>
+                <option value="09">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ano</label>
+              <input type="number" id="f-ano" value="" min="2000" max="2099"/>
+            </div>
+            <div class="form-group">
+              <label>Data do Pagamento</label>
+              <input type="date" id="f-data"/>
+            </div>
+            <div class="form-group">
+              <label>Valor (R$)</label>
+              <input type="number" id="f-valor" placeholder="0,00" step="0.01" min="0"/>
+            </div>
+            <div class="form-group">
+              <label>Forma de Pagamento</label>
+              <select id="f-forma">
+                <option>Pix</option><option>TED</option><option>Boleto</option><option>Dinheiro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="f-status"><option value="pago">✅ Pago</option><option value="pendente">⏳ Pendente</option></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Chave Pix (auto-extraída)</label>
+            <input type="text" id="f-pix" placeholder="Será preenchida automaticamente..."/>
+          </div>
+          <div class="form-group">
+            <label>Observação</label>
+            <textarea id="f-obs" rows="2" style="resize:vertical;width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:9px;font-family:var(--font);font-size:14px;outline:none" placeholder="Notas adicionais..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title" style="margin-bottom:6px">👥 Beneficiários <span id="benef-checks-count" style="font-size:12px;font-weight:400;color:var(--g400)"></span></div>
+          <p style="font-size:12px;color:var(--g500);margin-bottom:14px">Selecione quem este pagamento cobre. <button class="link-btn" style="font-size:12px" onclick="showView('config')">Gerenciar beneficiários →</button></p>
+          <div class="benef-checks-wrap" id="benef-checks"></div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">📎 Comprovante <span style="font-size:12px;font-weight:400;color:var(--g400)">(obrigatório para salvar)</span></div>
+          <div id="upload-container">
+            <div class="upload-area" id="upload-area" onclick="document.getElementById('f-comp').click()">
+              <div class="upload-icon">📎</div>
+              <div class="upload-text">Clique para anexar comprovante</div>
+              <div class="upload-sub">Imagem (JPG, PNG, WEBP) ou PDF — max 10MB</div>
+              <input type="file" id="f-comp" accept="image/*,.pdf" style="display:none" onchange="handleUpload(event)"/>
+            </div>
+          </div>
+          <div id="preview-container" class="hidden" style="margin-top:12px">
+            <div class="preview-area" id="preview-area"></div>
+          </div>
+          <!-- NOVO — indicador de progresso do upload Drive -->
+          <div class="upload-progress" id="upload-progress">
+            <div class="up-spinner"></div>
+            <span id="upload-progress-text">Enviando para Google Drive…</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-outline" onclick="showView('historico')">Cancelar</button>
+          <button class="btn btn-g" id="btn-salvar" disabled onclick="salvarPagamento()">💾 Salvar Pagamento</button>
+        </div>
+      </div>
+
+      <!-- ── COFRE ── -->
+      <div class="vw hidden" id="view-cofre">
+        <div class="cofre-form">
+          <div class="form-section-title" style="margin-bottom:16px">📁 Adicionar ao Cofre</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Categoria</label>
+              <select id="cv-cat"><option value="comprovante">Comprovante</option><option value="juridico">Jurídico</option><option value="outro">Outro</option></select>
+            </div>
+            <div class="form-group">
+              <label>Descrição</label>
+              <input type="text" id="cv-desc" placeholder="Ex: Acordo judicial 2024"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Arquivo</label>
+            <div class="upload-area" style="padding:20px" onclick="document.getElementById('cv-file').click()">
+              <div class="upload-icon" style="font-size:24px">📤</div>
+              <div class="upload-text" id="cv-file-name">Clique para selecionar arquivo</div>
+              <input type="file" id="cv-file" accept="image/*,.pdf" style="display:none" onchange="handleCofreUpload(event)"/>
+            </div>
+          </div>
+          <button class="btn btn-g" id="btn-cofre-salvar" onclick="salvarCofre()">🗂️ Salvar no Cofre</button>
+        </div>
+        <div class="section-title">📦 Documentos Salvos</div>
+        <div class="cofre-grid" id="cofre-grid"></div>
+        <div id="cofre-empty"></div>
+      </div>
+
+      <!-- ── RELATORIOS ── -->
+      <div class="vw hidden" id="view-relatorios">
+        <div class="rel-cards" id="rel-cards"></div>
+        <div class="rel-actions" id="rel-actions"></div>
+        <div id="rel-empty"></div>
+      </div>
+
+      <!-- ── CONFIG ── -->
+      <div class="vw hidden" id="view-config">
+        <div class="config-section">
+          <div class="config-title">👤 Dados Pessoais</div>
+          <div class="form-grid-2">
+            <div class="form-group"><label>Nome</label><input type="text" id="cfg-nome"/></div>
+            <div class="form-group"><label>E-mail</label><input type="email" id="cfg-email"/></div>
+          </div>
+          <button class="btn btn-g btn-sm" onclick="salvarConfig()">💾 Salvar Dados</button>
+        </div>
+
+        <div class="config-section">
+          <div class="config-title" style="justify-content:space-between">
+            <span>👥 Beneficiários</span>
+            <button class="btn btn-g btn-sm" id="btn-add-benef" onclick="toggleBenefForm()">➕ Adicionar</button>
+          </div>
+          <div id="benef-config-list"></div>
+          <div id="benef-form" class="hidden benef-add-panel">
+            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;display:flex;align-items:center;gap:6px">➕ Novo Beneficiário</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nome completo *</label>
+                <input type="text" id="bf-nome" placeholder="Ex: Maria Silva" oninput="validateBenefForm()"/>
+              </div>
+              <div class="form-group">
+                <label>Data de Nascimento</label>
+                <input type="date" id="bf-nasc"/>
+              </div>
+              <div class="form-group">
+                <label>Início da Pensão</label>
+                <input type="date" id="bf-inicio"/>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <button class="btn btn-g btn-sm" id="btn-benef-salvar" onclick="adicionarBeneficiario()" disabled>✅ Salvar Beneficiário</button>
+              <button class="btn btn-outline btn-sm" onclick="toggleBenefForm()">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-section">
+          <div class="config-title">🏷️ Plano e Licença</div>
+          <div class="plan-info" id="plan-info"></div>
+          <div class="form-group" style="max-width:360px">
+            <label>Ativar licença Pro</label>
+            <div class="license-input-wrap">
+              <input type="text" id="cfg-licenca" placeholder="XXXXXXXXXXXX" maxlength="12" oninput="this.value=this.value.toUpperCase()"/>
+              <button class="btn btn-g btn-sm" onclick="ativarLicenca()">Ativar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-section">
+          <div class="config-title">🔔 Notificações</div>
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" id="cfg-lembrete"/><span class="toggle-slider"></span></label>
+            <span style="font-size:14px;font-weight:500">Lembretes de vencimento</span>
+          </div>
+        </div>
+
+        <!-- NOVO — zona de perigo -->
+        <div class="config-section">
+          <div class="config-title" style="color:#991B1B">⚠️ Zona de Perigo</div>
+          <div class="danger-zone">
+            <div class="danger-zone-title">🗑️ Zerar todos os arquivos</div>
+            <p>Esta ação apaga <strong>permanentemente</strong> todos os pagamentos, documentos do cofre e configurações. Não pode ser desfeita.</p>
+            <button class="btn btn-r btn-sm" onclick="abrirModalZerar()">🗑️ Zerar todos os dados</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /app-cnt -->
+  </main>
+  <!-- PWA — Bottom Navigation Bar (mobile only) -->
+  <nav id="bottom-nav" aria-label="Navegação principal">
+    <button class="bn-item active" id="bn-dashboard"  onclick="showView('dashboard')">
+      <span class="bn-icon">🏠</span><span class="bn-label">Início</span>
+    </button>
+    <button class="bn-item"        id="bn-adicionar"  onclick="showView('adicionar')">
+      <span class="bn-icon bn-add">＋</span><span class="bn-label">Pagar</span>
+    </button>
+    <button class="bn-item"        id="bn-historico"  onclick="showView('historico')">
+      <span class="bn-icon">📋</span><span class="bn-label">Histórico</span>
+    </button>
+    <button class="bn-item"        id="bn-cofre"      onclick="showView('cofre')">
+      <span class="bn-icon">🗂️</span><span class="bn-label">Cofre</span>
+    </button>
+    <button class="bn-item"        id="bn-config"     onclick="showView('config')">
+      <span class="bn-icon">⚙️</span><span class="bn-label">Conta</span>
+    </button>
+  </nav>
+</div><!-- /screen-app -->
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ═══════════════════════════════════════
+//  CONFIGURAÇÃO — Cloudflare Worker API
+// ═══════════════════════════════════════
+const WORKER_URL = "https://pensao-check-api.pixdigital-erick.workers.dev";
+
+// ─── Google Client ID para login ────────────────────────────
+// PASSO: Google Cloud Console → APIs & Services → Credentials
+//        → Create OAuth 2.0 Client ID (Web application)
+//        → Authorized origins: URL onde o app está hospedado
+// Cole o Client ID abaixo:
+const GOOGLE_CLIENT_ID = "SEU_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // ← substitua
+
+// ═══════════════════════════════════════
+//  HELPER — chamadas ao Worker
+// ═══════════════════════════════════════
+async function api(method, path, body = null) {
+  const uid = currentUser?.id || "";
+  const opts = {
+    method,
+    headers: { "Content-Type": "application/json", "X-User-Id": uid }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(WORKER_URL + path, opts);
+    return await res.json();
+  } catch(e) {
+    console.warn("Worker API error:", e.message);
+    return null;
+  }
+}
+
+// NOVO — upload de arquivo para R2 via Worker
+async function uploadArquivo(file) {
+  const uid = currentUser?.id || "";
+  if (!uid || modoDemo) return null; // modo demo: sem upload real
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const res = await fetch(WORKER_URL + "/api/upload", {
+      method: "POST",
+      headers: { "X-User-Id": uid },
+      body: fd
+    });
+    const data = await res.json();
+    return data?.url || null;
+  } catch(e) {
+    console.warn("Upload R2 error:", e.message);
+    return null;
+  }
+}
+
+// ─── Estado de autenticação ──────────────────────────────────
+let modoDemo = false;
+
+// ═══════════════════════════════════════
+//  ESTADO GLOBAL
+// ═══════════════════════════════════════
+let pags = [];
+let cofre = [];
+let currentUser = null; // usuário autenticado (Google login ou demo)
+
+const MESES = ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+               "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+const VT = {
+  dashboard:  "Dashboard",
+  adicionar:  "Novo Pagamento",
+  historico:  "Histórico",
+  cofre:      "Cofre",
+  relatorios: "Relatórios",
+  config:     "Configurações"
+};
+
+const DEMO = [
+  { id:"d1", valor:650, dataPagamento:"2026-01-15", mesReferencia:"01", anoReferencia:"2026",
+    formaPagamento:"Pix", observacao:"Pagamento referente a janeiro", status:"pago",
+    comprovante:null, comprovanteNome:"", chavePix:"123.456.789-00",
+    beneficiarios:["Ana"], isExtra:false, createdAt:"2026-01-15T10:00:00Z" },
+  { id:"d2", valor:650, dataPagamento:"2026-02-15", mesReferencia:"02", anoReferencia:"2026",
+    formaPagamento:"Pix", observacao:"", status:"pago",
+    comprovante:null, comprovanteNome:"", chavePix:"123.456.789-00",
+    beneficiarios:["Ana"], isExtra:false, createdAt:"2026-02-15T10:00:00Z" },
+  { id:"d3", valor:650, dataPagamento:"2026-03-15", mesReferencia:"03", anoReferencia:"2026",
+    formaPagamento:"Pix", observacao:"", status:"pago",
+    comprovante:null, comprovanteNome:"", chavePix:"",
+    beneficiarios:["Ana"], isExtra:false, createdAt:"2026-03-15T10:00:00Z" },
+  { id:"d4", valor:325, dataPagamento:"2025-12-15", mesReferencia:"12", anoReferencia:"2025",
+    formaPagamento:"TED", observacao:"Pagamento dezembro", status:"pago",
+    comprovante:null, comprovanteNome:"", chavePix:"",
+    beneficiarios:["Ana"], isExtra:false, createdAt:"2025-12-15T10:00:00Z" }
+];
+
+// ═══════════════════════════════════════
+//  PERSISTÊNCIA — Cloudflare Worker + localStorage fallback
+// ═══════════════════════════════════════
+async function load() {
+  const uid = currentUser?.id;
+
+  if (uid && !modoDemo) {
+    // Carrega pagamentos do Worker (D1)
+    try {
+      const data = await api("GET", "/api/pagamentos");
+      if (Array.isArray(data)) { pags = data; localStorage.setItem("pc3", JSON.stringify(pags)); }
+      else { pags = JSON.parse(localStorage.getItem("pc3") || "[]"); }
+    } catch { pags = JSON.parse(localStorage.getItem("pc3") || "[]"); }
+
+    // Carrega cofre do Worker (D1)
+    try {
+      const data = await api("GET", "/api/cofre");
+      if (Array.isArray(data)) { cofre = data; localStorage.setItem("pc_cofre", JSON.stringify(cofre)); }
+      else { cofre = JSON.parse(localStorage.getItem("pc_cofre") || "[]"); }
+    } catch { cofre = JSON.parse(localStorage.getItem("pc_cofre") || "[]"); }
+  } else {
+    // Modo demo — usa localStorage
+    try { pags = JSON.parse(localStorage.getItem("pc3") || "[]"); } catch { pags = []; }
+    if (!pags.length) { pags = [...DEMO]; savePags(); }
+    try { cofre = JSON.parse(localStorage.getItem("pc_cofre") || "[]"); } catch { cofre = []; }
+  }
+}
+
+function savePags()  { localStorage.setItem("pc3", JSON.stringify(pags)); }
+function saveCofre() { localStorage.setItem("pc_cofre", JSON.stringify(cofre)); }
+
+function getUserData() {
+  if (currentUser && !modoDemo) {
+    const local = (() => { try { return JSON.parse(localStorage.getItem("pc_user") || "{}"); } catch { return {}; }})();
+    return { ...local, nome: currentUser.nome || local.nome, email: currentUser.email || local.email, id: currentUser.id };
+  }
+  try { return JSON.parse(localStorage.getItem("pc_user") || "{}"); } catch { return {}; }
+}
+
+function saveUserData(u) {
+  localStorage.setItem("pc_user", JSON.stringify(u));
+  // Persiste no Worker (D1) também
+  if (currentUser?.id && !modoDemo) {
+    api("POST", "/api/user", {
+      nome:              u.nome,
+      email:             u.email,
+      plano:             u.plano || "free",
+      planoValido:       u.planoValido || null,
+      dataInicioPensao:  u.dataInicioPensao || null,
+      beneficiarios:     u.beneficiarios || [],
+      lembretes:         !!u.lembretes,
+      uploadsMes:        u.uploadsMes || 0,
+      ultimoMesUpload:   u.ultimoMesUpload || ""
+    }).catch(e => console.warn("Worker saveUser:", e));
+  }
+}
+
+function getDefaultUser() {
+  return {
+    nome: "Demo User", email: ["demo","pensaocheck.com"].join("@"),
+    plano: "free", planoValido: null,
+    dataCadastro: new Date().toISOString(),
+    lembretes: false, uploadsMes: 0, ultimoMesUpload: "",
+    valoresAnuais: [], beneficiarios: [{nome:"Ana", nascimento:"2018-05-10", inicio:"2020-01-01"}]
+  };
+}
+
+function podeUpload() {
+  const u = getUserData();
+  if (u.plano === "pro") {
+    if (u.planoValido && new Date(u.planoValido) > new Date()) return true;
+  }
+  const hoje = new Date();
+  const cadastro = new Date(u.dataCadastro || hoje);
+  const diasLivre = Math.floor((hoje - cadastro)/(1000*60*60*24));
+  if (diasLivre <= 90) return true;
+  const mesAtual = hoje.toISOString().slice(0,7);
+  if (u.ultimoMesUpload !== mesAtual) return true;
+  return (u.uploadsMes || 0) < 5;
+}
+
+function registrarUpload() {
+  const u = getUserData();
+  const mesAtual = new Date().toISOString().slice(0,7);
+  if (u.ultimoMesUpload !== mesAtual) { u.uploadsMes = 0; u.ultimoMesUpload = mesAtual; }
+  u.uploadsMes = (u.uploadsMes || 0) + 1;
+  saveUserData(u);
+}
+
+// ═══════════════════════════════════════
+//  AUTH — Google Identity Services (One Tap)
+// ═══════════════════════════════════════
+
+// Decodifica JWT do Google sem biblioteca externa
+function decodeGoogleJWT(token) {
+  try {
+    const payload = token.split(".")[1];
+    const decoded = atob(payload.replace(/-/g,"+").replace(/_/g,"/"));
+    return JSON.parse(decoded);
+  } catch { return null; }
+}
+
+// Chamado pelo Google após login bem-sucedido
+async function handleGoogleCredential(response) {
+  const payload = decodeGoogleJWT(response.credential);
+  if (!payload) { showToast("❌ Erro ao processar login Google"); return; }
+
+  currentUser = {
+    id:    payload.sub,       // Google user ID — usado como X-User-Id no Worker
+    nome:  payload.name,
+    email: payload.email,
+    foto:  payload.picture || ""
+  };
+  modoDemo = false;
+
+  // Salva sessão local para recargas de página
+  localStorage.setItem("pc_session", JSON.stringify(currentUser));
+
+  // Upsert no D1 via Worker
+  const u = getUserData();
+  if (!u.email) {
+    const novo = getDefaultUser();
+    novo.nome = currentUser.nome; novo.email = currentUser.email;
+    saveUserData(novo);
+  } else {
+    saveUserData({ ...u, nome: currentUser.nome, email: currentUser.email });
+  }
+
+  await goApp();
+}
+
+// Botão "Entrar com Google" — inicializa o Google One Tap
+function loginComGoogle() {
+  if (GOOGLE_CLIENT_ID.includes("SEU_GOOGLE")) {
+    // Client ID não configurado — avisa e entra em demo
+    showToast("⚠️ Google Client ID não configurado. Usando modo Demo.");
+    doLoginDemo();
+    return;
+  }
+  if (!window.google?.accounts?.id) {
+    showToast("⚠️ Google SDK não carregado. Tente novamente.");
+    return;
+  }
+  document.getElementById("login-buttons").classList.add("hidden");
+  document.getElementById("login-loading").classList.remove("hidden");
+
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback:  handleGoogleCredential,
+    auto_select: false
+  });
+  google.accounts.id.prompt(notification => {
+    // Se o One Tap for suprimido, mostra o botão renderizado
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      document.getElementById("login-buttons").classList.remove("hidden");
+      document.getElementById("login-loading").classList.add("hidden");
+      // Renderiza botão Google padrão como fallback
+      const container = document.getElementById("google-btn-container");
+      if (container) {
+        google.accounts.id.renderButton(container, {
+          theme: "outline", size: "large", width: 320, text: "signin_with"
+        });
+      }
+    }
+  });
+}
+
+// Modo demo — sem autenticação real
+function doLoginDemo() {
+  modoDemo = true;
+  currentUser = null;
+  localStorage.removeItem("pc_session");
+  let u = getUserData();
+  if (!u.email) { u = getDefaultUser(); saveUserData(u); }
+  goApp();
+}
+
+// Logout
+function doLogout() {
+  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  currentUser = null;
+  modoDemo    = false;
+  localStorage.removeItem("pc_session");
+  showScreen("login");
+  document.getElementById("login-buttons").classList.remove("hidden");
+  document.getElementById("login-loading").classList.add("hidden");
+}
+
+// stubs para compatibilidade
+function switchTab()  {}
+function doLogin()    {}
+function doCadastro() {}
+
+function doLogout() {
+  showScreen("login");
+  document.getElementById("l-email").value = "demo@pensaocheck.com";
+  document.getElementById("l-senha").value = "";
+}
+
+// ═══════════════════════════════════════
+//  NAVEGAÇÃO
+// ═══════════════════════════════════════
+function showScreen(s) {
+  document.querySelectorAll(".screen").forEach(x => x.classList.remove("active"));
+  document.getElementById("screen-"+s).classList.add("active");
+}
+
+// ALTERADO — goApp agora é async para aguardar load() assíncrono
+async function goApp() {
+  await load();
+  showScreen("app");
+  atualizarBadgePlano();
+  atualizarSbUser();
+  showView("dashboard");
+}
+
+function showView(v) {
+  document.querySelectorAll(".vw").forEach(x => x.classList.add("hidden"));
+  document.getElementById("view-"+v).classList.remove("hidden");
+  document.querySelectorAll(".sb-item").forEach(b => b.classList.remove("active"));
+  document.getElementById("nav-"+v)?.classList.add("active");
+  document.getElementById("view-title").textContent = VT[v] || "";
+  // PWA — sync bottom nav active state
+  document.querySelectorAll(".bn-item").forEach(b => b.classList.remove("active"));
+  document.getElementById("bn-"+v)?.classList.add("active");
+  closeSb();
+
+  if (v === "dashboard")  { load(); renderD(); renderBeneficiarios(); atualizarAlertaTopo(); renderPainelPendentes(); } // NOVO: +alerta +painel
+  if (v === "historico")  { load(); renderHF(); renderH(); }
+  if (v === "adicionar")  { load(); resetF(); renderBeneficiariosChecks(); }
+  if (v === "cofre")      { load(); renderCofre(); }
+  if (v === "relatorios") { load(); renderRelatorioPreview(); }
+  if (v === "config")     { loadConfig(); renderBeneficiariosConfig(); }
+  window.scrollTo(0,0);
+}
+
+function toggleSb() {
+  const sb = document.getElementById("sidebar");
+  const ov = document.getElementById("overlay");
+  sb.classList.toggle("open");
+  ov.classList.toggle("show");
+}
+function closeSb() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+// ═══════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════
+function fmtMoeda(v) {
+  return "R$ " + Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtData(d) {
+  if (!d) return "—";
+  const [y,m,dd] = d.split("-");
+  return dd+"/"+m+"/"+y;
+}
+function mesNome(m) { return MESES[parseInt(m)] || m; }
+function mesRef(m,a) { return mesNome(m)+" "+a; }
+function uuid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+
+function showToast(msg, dur=3000) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), dur);
+}
+
+function atualizarBadgePlano() {
+  const u = getUserData();
+  const b = document.getElementById("hdr-badge");
+  if (u.plano === "pro" && u.planoValido && new Date(u.planoValido) > new Date()) {
+    b.textContent = "PRO ✓"; b.className = "badge-pro";
+  } else {
+    b.textContent = "FREE"; b.className = "badge-free";
+  }
+}
+
+function atualizarSbUser() {
+  const u = getUserData();
+  const nome = u.nome || "Demo";
+  document.getElementById("sb-nome").textContent = nome;
+  document.getElementById("sb-email").textContent = u.email || "";
+  document.getElementById("sb-avatar").textContent = nome[0].toUpperCase();
+}
+
+function extrairChavePix(texto) {
+  if (!texto) return "";
+  const patterns = [
+    /\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b/, /\b(\d{11})\b/,
+    /\b([\w.]+@[\w.]+)\b/, /\b(\+55\d{10,11})\b/,
+    /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i
+  ];
+  for (const p of patterns) { const m = texto.match(p); if (m) return m[1]||m[0]; }
+  return "";
+}
+
+function openModal(title, html) {
+  document.getElementById("modal-title").textContent = title;
+  document.getElementById("modal-body").innerHTML = html;
+  document.getElementById("modal").classList.add("show");
+  document.getElementById("overlay").classList.add("show");
+}
+function closeModal() {
+  document.getElementById("modal").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+// ═══════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════
+function renderD() {
+  const u = getUserData();
+  // Alerta
+  const alertEl = document.getElementById("dash-alert");
+  const hoje = new Date();
+  const diasCadastro = Math.floor((hoje - new Date(u.dataCadastro||hoje))/(1000*60*60*24));
+  const diasRestantes = 90 - diasCadastro;
+  if (u.plano !== "pro" && diasRestantes <= 10 && diasRestantes > 0) {
+    alertEl.innerHTML = `<div class="alert-banner">⚠️ Seu período grátis expira em <strong>${diasRestantes} dias</strong>. Ative uma licença Pro para continuar sem limites.</div>`;
+  } else { alertEl.innerHTML = ""; }
+
+  // Cards
+  const anoAtual = hoje.getFullYear().toString();
+  const mesAtual = String(hoje.getMonth()+1).padStart(2,"0");
+  const pagosAno   = pags.filter(p=>p.anoReferencia===anoAtual&&p.status==="pago");
+  const totalAno   = pagosAno.reduce((s,p)=>s+Number(p.valor),0);
+  const pagosMes   = pags.filter(p=>p.anoReferencia===anoAtual&&p.mesReferencia===mesAtual&&p.status==="pago");
+  const totalMes   = pagosMes.reduce((s,p)=>s+Number(p.valor),0);
+  const pendentes  = pags.filter(p=>p.status==="pendente").length;
+  const proxMes    = String((hoje.getMonth()+2)%12||12).padStart(2,"0");
+  const proxAno    = hoje.getMonth()===11?(hoje.getFullYear()+1).toString():anoAtual;
+
+  document.getElementById("dash-cards").innerHTML = `
+    <div class="dash-card green"><div class="dc-label">Total Pago no Ano</div><div class="dc-val">${fmtMoeda(totalAno)}</div><div class="dc-sub">${pagosAno.length} pagamento(s)</div></div>
+    <div class="dash-card navy"><div class="dc-label">Mês Atual</div><div class="dc-val">${fmtMoeda(totalMes)}</div><div class="dc-sub">${mesNome(mesAtual)}</div></div>
+    <div class="dash-card orange"><div class="dc-label">Próximo Vencimento</div><div class="dc-val">${mesNome(proxMes)}</div><div class="dc-sub">${proxAno}</div></div>
+    <div class="dash-card gray"><div class="dc-label">Pendentes</div><div class="dc-val">${pendentes}</div><div class="dc-sub">pagamento(s)</div></div>`;
+
+  // Últimos 5
+  const ultimos = [...pags].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+  const lastEl = document.getElementById("last-pags");
+  if (!ultimos.length) {
+    lastEl.innerHTML = `<div class="empty"><div class="empty-icon">📄</div><p>Nenhum pagamento ainda</p><button class="btn btn-g btn-sm" onclick="showView('adicionar')">+ Adicionar</button></div>`;
+  } else {
+    lastEl.innerHTML = ultimos.map(p=>`
+      <div class="lp-row">
+        <div><div class="lp-ref">${mesRef(p.mesReferencia,p.anoReferencia)}</div><div class="lp-date">${fmtData(p.dataPagamento)} · ${p.formaPagamento}</div></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="lp-val">${fmtMoeda(p.valor)}</span>
+          <span class="${p.status==="pago"?"badge-pago":"badge-pendente"}">${p.status==="pago"?"✓ Pago":"⏳ Pendente"}</span>
+        </div>
+      </div>`).join("");
+  }
+}
+
+function renderBeneficiarios() {
+  const u = getUserData();
+  const benefs = u.beneficiarios || [];
+  const el = document.getElementById("benef-grid");
+  if (!benefs.length) {
+    el.innerHTML = `<div class="card" style="grid-column:1/-1;color:var(--g400);text-align:center;padding:24px">Nenhum beneficiário. Adicione em Configurações.</div>`;
+    return;
+  }
+  const anoAtual = new Date().getFullYear().toString();
+  const mesAtual = String(new Date().getMonth()+1).padStart(2,"0");
+  el.innerHTML = benefs.map(b=>{
+    const pgMes = pags.filter(p=>p.beneficiarios?.includes(b.nome)&&p.anoReferencia===anoAtual&&p.mesReferencia===mesAtual&&p.status==="pago").length;
+    return `<div class="benef-card">
+      <div class="benef-avatar">${b.nome[0].toUpperCase()}</div>
+      <div>
+        <div class="benef-name">${b.nome}</div>
+        <div class="benef-info">Nasc: ${fmtData(b.nascimento)}</div>
+        <div style="margin-top:6px">${pgMes>0?'<span class="badge-pago">✓ Pago esse mês</span>':'<span class="badge-pendente">⏳ Pendente</span>'}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════
+//  NOVO — ALERTA TOPO + PAINEL PENDENTES
+// ═══════════════════════════════════════
+
+// NOVO — calcula quantos meses desde dataInicioPensao até mês anterior ao atual
+//        que ainda não têm comprovante com status "pago" no localStorage
+function calcularPendentes() {
+  const u = getUserData();
+  const inicio = u.dataInicioPensao ? new Date(u.dataInicioPensao) : null;
+  const hoje = new Date();
+
+  // Se não tem data de início configurada, usa o primeiro pagamento registrado
+  let dataBase = inicio;
+  if (!dataBase && pags.length) {
+    const sorted = [...pags].sort((a,b)=>
+      (a.anoReferencia+a.mesReferencia).localeCompare(b.anoReferencia+b.mesReferencia));
+    const p = sorted[0];
+    dataBase = new Date(parseInt(p.anoReferencia), parseInt(p.mesReferencia)-1, 1);
+  }
+  if (!dataBase) return { faltando: 0, total: 0, mesesFaltando: [] };
+
+  // Monta lista de todos os meses entre dataBase e mês ANTERIOR ao atual (inclusive)
+  const mesesEsperados = [];
+  const cursor = new Date(dataBase.getFullYear(), dataBase.getMonth(), 1);
+  // limite = início do mês atual (não inclui o mês atual)
+  const limite = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  while (cursor < limite) {
+    mesesEsperados.push({
+      ano:  String(cursor.getFullYear()),
+      mes:  String(cursor.getMonth()+1).padStart(2,"0")
+    });
+    cursor.setMonth(cursor.getMonth()+1);
+  }
+
+  // Verifica quais têm pagamento "pago"
+  const mesesFaltando = mesesEsperados.filter(({ano,mes})=>
+    !pags.some(p=>p.anoReferencia===ano && p.mesReferencia===mes && p.status==="pago")
+  );
+
+  return { faltando: mesesFaltando.length, total: mesesEsperados.length, mesesFaltando };
+}
+
+// NOVO — atualiza o div #alerta-topo com cor dinâmica
+function atualizarAlertaTopo() {
+  const el = document.getElementById("alerta-topo");
+  if (!el) return;
+  const { faltando, mesesFaltando } = calcularPendentes();
+
+  el.className = "show";
+  el.classList.remove("verde","amarelo","vermelho");
+
+  if (faltando === 0) {
+    el.classList.add("verde");
+    el.innerHTML = `<span class="at-icon">✅</span><span class="at-msg">Você está em dia! Todos os comprovantes registrados.</span>`;
+  } else if (faltando === 1) {
+    el.classList.add("amarelo");
+    const m = mesesFaltando[0];
+    el.innerHTML = `<span class="at-icon">⚠️</span><span class="at-msg">Faltando <strong>1 comprovante</strong> do mês anterior (${mesNome(m.mes)} ${m.ano}). Regularize para evitar problemas. ⚠️</span>`;
+  } else if (faltando <= 3) {
+    el.classList.add("amarelo");
+    el.innerHTML = `<span class="at-icon">⚠️</span><span class="at-msg">Faltando <strong>${faltando} comprovante(s)</strong> do mês anterior e anteriores. Regularize em breve. ⚠️</span>`;
+  } else {
+    el.classList.add("vermelho");
+    el.innerHTML = `<span class="at-icon">🚨</span><span class="at-msg"><strong>Débitos pendentes!</strong> ${faltando} comprovante(s) em aberto. Risco de prisão, juros e multas. Regularize imediatamente! ⚠️</span>`;
+  }
+}
+
+// NOVO — renderiza painel de pendentes abaixo dos cards
+function renderPainelPendentes() {
+  const el = document.getElementById("painel-pendentes");
+  if (!el) return;
+  const { faltando, total } = calcularPendentes();
+  const ok = faltando === 0;
+
+  el.innerHTML = `
+    <div class="pendentes-card ${ok?"ok":""}">
+      <div class="pc-left">
+        <div class="pc-icon">${ok?"📋":"📌"}</div>
+        <div>
+          <div class="pc-title">${ok
+            ? "Comprovantes em dia"
+            : `Faltam <span style="color:var(--orange)">${faltando}</span> comprovante(s)`}</div>
+          <div class="pc-sub">${ok
+            ? `${total} de ${total} meses cobertos`
+            : `${total-faltando} de ${total} meses com comprovante`}</div>
+        </div>
+      </div>
+      ${!ok ? `<button class="btn btn-g btn-sm" onclick="showView('adicionar')">➕ Adicionar</button>` : ""}
+    </div>`;
+}
+
+// NOVO — abre modal de confirmação de zerar dados
+function abrirModalZerar() {
+  const m = document.getElementById("modal-zerar-wrap");
+  const ov = document.getElementById("overlay");
+  document.getElementById("zerar-senha").value = "";
+  document.getElementById("zerar-erro").textContent = "";
+  document.getElementById("btn-confirmar-zerar").disabled = true;
+  m.classList.add("show");
+  ov.classList.add("show");
+  setTimeout(()=>document.getElementById("zerar-senha").focus(), 100);
+}
+
+// NOVO — fecha modal de zerar dados
+function fecharModalZerar() {
+  document.getElementById("modal-zerar-wrap").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+// NOVO — valida senha em tempo real
+function validarSenhaZerar() {
+  const val = document.getElementById("zerar-senha").value;
+  const u = getUserData();
+  // Aceita senha fixa 'reset123' ou senha do usuário (se houver) ou qualquer senha com ≥6 chars como fallback
+  const valida = val === "reset123" || (u.senha && val === u.senha) || val.length >= 6;
+  document.getElementById("btn-confirmar-zerar").disabled = !valida;
+  document.getElementById("zerar-erro").textContent = val.length > 0 && !valida
+    ? "Senha incorreta ou muito curta (mín. 6 caracteres)" : "";
+}
+
+// NOVO — efetua o zerar dados após confirmação
+function confirmarZerar() {
+  const val = document.getElementById("zerar-senha").value;
+  const u = getUserData();
+  const valida = val === "reset123" || (u.senha && val === u.senha) || val.length >= 6;
+  if (!valida) return;
+  fecharModalZerar();
+  localStorage.clear();
+  showToast("🗑️ Todos os dados foram apagados. Recarregando...", 2000);
+  setTimeout(()=>location.reload(), 2200);
+}
+
+// ═══════════════════════════════════════
+//  HISTÓRICO
+// ═══════════════════════════════════════
+function renderHF() {
+  const anos = [...new Set(pags.map(p=>p.anoReferencia))].sort((a,b)=>b-a);
+  const fano = document.getElementById("fano");
+  const cur = fano.value;
+  fano.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a=>`<option value="${a}"${a===cur?" selected":""}>${a}</option>`).join("");
+}
+
+function renderH() {
+  const ano = document.getElementById("fano").value;
+  const mes = document.getElementById("fmes").value;
+  const data = pags.filter(p=>(!ano||p.anoReferencia===ano)&&(!mes||p.mesReferencia===mes));
+  data.sort((a,b)=>(b.anoReferencia+b.mesReferencia).localeCompare(a.anoReferencia+a.mesReferencia));
+
+  const pagos = data.filter(p=>p.status==="pago").length;
+  const pend  = data.filter(p=>p.status==="pendente").length;
+  const total = data.reduce((s,p)=>s+Number(p.valor),0);
+
+  document.getElementById("hist-summary").innerHTML = `
+    <strong>${data.length}</strong> registros · ✅ <strong>${pagos}</strong> pagos · ⏳ <strong>${pend}</strong> pendentes
+    <span class="hist-total">${fmtMoeda(total)}</span>`;
+
+  const wrap = document.getElementById("hist-table-wrap");
+  if (!pags.length) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>Nenhum pagamento registrado ainda.</p><button class="btn btn-g btn-sm" onclick="showView('adicionar')">+ Adicionar</button></div>`;
+    return;
+  }
+  if (!data.length) {
+    wrap.innerHTML = `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><p>Nenhum resultado para o filtro selecionado.</p></div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Referência</th><th>Data Pag.</th><th>Valor</th><th>Forma</th><th>Chave PIX</th><th>Comprovante</th><th>Status</th><th></th>
+    </tr></thead>
+    <tbody>${data.map(p=>`
+      <tr>
+        <td style="font-weight:600">${mesRef(p.mesReferencia,p.anoReferencia)}</td>
+        <td>${fmtData(p.dataPagamento)}</td>
+        <td style="font-weight:700;color:var(--navy)">${fmtMoeda(p.valor)}</td>
+        <td>${p.formaPagamento}</td>
+        <td style="font-size:12px;color:var(--g500);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.chavePix||"—"}</td>
+        <td>${compBtn(p)}</td>
+        <td><span class="${p.status==="pago"?"badge-pago":"badge-pendente"}">${p.status==="pago"?"✓ Pago":"⏳ Pendente"}</span></td>
+        <td><button class="icon-btn" onclick="deletarPag('${p.id}')" title="Excluir">🗑️</button></td>
+      </tr>`).join("")}
+    </tbody></table>`;
+}
+
+function compBtn(p) {
+  if (!p.comprovante) return '<span style="color:var(--g300);font-size:12px">—</span>';
+  // NOVO — detecta se é URL Drive ou base64
+  const isDriveUrl = typeof p.comprovante === "string" && p.comprovante.startsWith("https://");
+  if (isDriveUrl) {
+    return `<div class="comp-btns">
+      <a class="comp-btn" href="${p.comprovante}" target="_blank" rel="noopener">👁 Ver</a>
+      <a class="comp-btn" href="${p.comprovante.replace('export=view','export=download')}" target="_blank" rel="noopener">⬇ Baixar</a>
+    </div>`;
+  }
+  if (p.comprovante === "pdf") {
+    return `<div class="comp-btns">
+      <button class="comp-btn" onclick="verComp('${p.id}')">👁 Ver</button>
+      <button class="comp-btn" onclick="baixarComp('${p.id}')">⬇ Baixar</button>
+    </div>`;
+  }
+  return `<div class="comp-btns">
+    <button class="comp-btn" onclick="verComp('${p.id}')">👁 Ver</button>
+    <button class="comp-btn" onclick="baixarComp('${p.id}')">⬇ Baixar</button>
+  </div>`;
+}
+
+function verComp(id) {
+  const p = pags.find(x=>x.id===id);
+  if (!p||!p.comprovante) return;
+  if (p.comprovante === "pdf") {
+    openModal("Comprovante — "+mesRef(p.mesReferencia,p.anoReferencia),
+      `<div class="preview-pdf">📄 <span>PDF: ${p.comprovanteNome||"comprovante.pdf"}</span></div><p style="font-size:12px;color:var(--g400);text-align:center;margin-top:8px">Download disponível</p>`);
+  } else {
+    openModal("Comprovante — "+mesRef(p.mesReferencia,p.anoReferencia),
+      `<img src="${p.comprovante}" alt="Comprovante" style="border-radius:8px;max-width:100%"/>`);
+  }
+}
+
+function baixarComp(id) {
+  const p = pags.find(x=>x.id===id);
+  if (!p||!p.comprovante) return;
+  const a = document.createElement("a");
+  if (p.comprovante === "pdf") {
+    showToast("⚠️ PDF armazenado como referência, sem dados binários");
+    return;
+  }
+  a.href = p.comprovante;
+  a.download = p.comprovanteNome || "comprovante.png";
+  a.click();
+}
+
+async function deletarPag(id) {
+  if (!confirm("Excluir este pagamento?")) return;
+  // ALTERADO — deleta no Worker (D1 + R2)
+  if (currentUser?.id && !modoDemo) {
+    await api("DELETE", `/api/pagamentos/${id}`);
+  }
+  pags = pags.filter(p => p.id !== id);
+  savePags();
+  renderH();
+  showToast("🗑️ Pagamento excluído");
+}
+
+// ═══════════════════════════════════════
+//  ADICIONAR
+// ═══════════════════════════════════════
+let compBase64 = null;
+let compNome   = "";
+let compTipo   = "";
+
+function resetF() {
+  const hoje = new Date();
+  document.getElementById("f-mes").value = String(hoje.getMonth()+1).padStart(2,"0");
+  document.getElementById("f-ano").value = hoje.getFullYear();
+  document.getElementById("f-data").value = hoje.toISOString().split("T")[0];
+  document.getElementById("f-valor").value = "";
+  document.getElementById("f-forma").value = "Pix";
+  document.getElementById("f-status").value = "pago";
+  document.getElementById("f-pix").value = "";
+  document.getElementById("f-obs").value = "";
+  document.getElementById("f-comp").value = "";
+  compBase64 = null; compNome = ""; compTipo = "";
+  document.getElementById("preview-container").classList.add("hidden");
+  document.getElementById("upload-container").classList.remove("hidden");
+  document.getElementById("btn-salvar").disabled = true;
+}
+
+function renderBeneficiariosChecks() {
+  const u = getUserData();
+  const benefs = u.beneficiarios || [];
+  const el = document.getElementById("benef-checks");
+  const countEl = document.getElementById("benef-checks-count");
+
+  if (!benefs.length) {
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--g50);border-radius:9px;border:1.5px dashed var(--g300)">
+      <span style="font-size:20px">👤</span>
+      <span style="font-size:13px;color:var(--g500)">Nenhum beneficiário cadastrado. <button class="link-btn" onclick="showView('config')">Adicionar em Configurações →</button></span>
+    </div>`;
+    if (countEl) countEl.textContent = "";
+    return;
+  }
+
+  if (countEl) countEl.textContent = "(" + benefs.length + " cadastrado" + (benefs.length>1?"s":"") + ")";
+
+  el.innerHTML = `
+    <div class="benef-checks-row">
+      <label class="benef-check benef-check-todos" id="lbl-todos">
+        <input type="checkbox" id="chk-todos" onchange="toggleTodos(this.checked)"/>
+        🔘 Todos os beneficiários
+      </label>
+    </div>
+    <div class="benef-checks-divider"><span>ou selecione individualmente</span></div>
+    <div class="benef-checks-row" id="benef-individual-row">
+      ${benefs.map(b=>`
+        <label class="benef-check">
+          <input type="checkbox" name="benef-check" value="${b.nome}" checked onchange="sincronizarTodos()"/>
+          <span style="font-size:16px">${getAvatarLetter(b.nome)}</span>
+          ${b.nome}
+        </label>`).join("")}
+    </div>`;
+
+  // Inicializa: se todos marcados, marca o "Todos"
+  sincronizarTodos();
+}
+
+function getAvatarLetter(nome) {
+  const avatars = ["👦","👧","👨","👩","🧒","👶","🧑"];
+  const idx = nome.charCodeAt(0) % avatars.length;
+  return avatars[idx];
+}
+
+function toggleTodos(checked) {
+  document.querySelectorAll('input[name="benef-check"]').forEach(c => { c.checked = checked; });
+  // Atualiza estilo do label "Todos"
+  const lbl = document.getElementById("lbl-todos");
+  if (lbl) lbl.style.opacity = "1";
+}
+
+function sincronizarTodos() {
+  const todos = document.querySelectorAll('input[name="benef-check"]');
+  const marcados = document.querySelectorAll('input[name="benef-check"]:checked');
+  const chkTodos = document.getElementById("chk-todos");
+  if (!chkTodos) return;
+  if (marcados.length === todos.length && todos.length > 0) {
+    chkTodos.checked = true;
+    chkTodos.indeterminate = false;
+  } else if (marcados.length === 0) {
+    chkTodos.checked = false;
+    chkTodos.indeterminate = false;
+  } else {
+    chkTodos.checked = false;
+    chkTodos.indeterminate = true; // estado parcial
+  }
+}
+
+// ALTERADO — handleUpload usa Worker R2
+function handleUpload(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  if (file.size > 10*1024*1024) return showToast("⚠️ Arquivo muito grande (máx 10MB)");
+  if (!podeUpload()) return showToast("⚠️ Limite de uploads atingido. Ative o plano Pro.");
+
+  compNome = file.name;
+  compTipo = file.type.includes("pdf") ? "pdf" : "imagem";
+  const pix = extrairChavePix(file.name);
+  if (pix) document.getElementById("f-pix").value = pix;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64Local = e.target.result;
+
+    // Preview imediato
+    if (compTipo === "pdf") {
+      document.getElementById("preview-area").innerHTML =
+        `<div class="preview-pdf">📄 <span>${file.name}</span></div>
+         <button class="preview-clear" onclick="clearComp()">✕</button>`;
+    } else {
+      document.getElementById("preview-area").innerHTML =
+        `<img src="${base64Local}" alt="Preview"/>
+         <button class="preview-clear" onclick="clearComp()">✕</button>`;
+    }
+    document.getElementById("preview-container").classList.remove("hidden");
+    document.getElementById("upload-container").classList.add("hidden");
+
+    // Tenta upload R2 via Worker
+    const driveEl   = document.getElementById("upload-progress");
+    const driveText = document.getElementById("upload-progress-text");
+
+    if (currentUser?.id && !modoDemo) {
+      driveEl.classList.add("show");
+      driveText.textContent = "Enviando para Cloudflare R2…";
+      const url = await uploadArquivo(file);
+      driveEl.classList.remove("show");
+      compBase64 = url || base64Local; // URL R2 ou base64 como fallback
+      if (url) driveText.textContent = "✅ Salvo na nuvem";
+    } else {
+      compBase64 = base64Local; // modo demo
+    }
+    document.getElementById("btn-salvar").disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearComp() {
+  compBase64 = null; compNome = ""; compTipo = "";
+  document.getElementById("f-comp").value = "";
+  document.getElementById("preview-container").classList.add("hidden");
+  document.getElementById("upload-container").classList.remove("hidden");
+  document.getElementById("btn-salvar").disabled = true;
+}
+
+async function salvarPagamento() {
+  const mes   = document.getElementById("f-mes").value;
+  const ano   = document.getElementById("f-ano").value;
+  const data  = document.getElementById("f-data").value;
+  const valor = parseFloat(document.getElementById("f-valor").value);
+  if (!mes||!ano||!data||isNaN(valor)||valor<=0) return showToast("⚠️ Preencha todos os campos obrigatórios");
+  if (!compBase64) return showToast("⚠️ Anexe o comprovante para salvar");
+
+  const checks = document.querySelectorAll('input[name="benef-check"]:checked');
+  const benefs = [...checks].map(c=>c.value);
+
+  const pag = {
+    id:              uuid(), valor,
+    dataPagamento:   data, mesReferencia: mes, anoReferencia: ano,
+    formaPagamento:  document.getElementById("f-forma").value,
+    observacao:      document.getElementById("f-obs").value,
+    status:          document.getElementById("f-status").value,
+    comprovante:     compBase64, comprovanteNome: compNome,
+    chavePix:        document.getElementById("f-pix").value,
+    beneficiarios:   benefs, isExtra: false,
+    createdAt:       new Date().toISOString()
+  };
+
+  // ALTERADO — salva no Worker (D1) se autenticado
+  if (currentUser?.id && !modoDemo) {
+    const res = await api("POST", "/api/pagamentos", pag);
+    if (res?.error) console.warn("Worker insert pagamento:", res.error);
+  }
+
+  pags.push(pag);
+  savePags();
+  registrarUpload();
+  showToast("✅ Pagamento salvo com sucesso!");
+  setTimeout(()=>showView("historico"), 1800);
+}
+
+// ═══════════════════════════════════════
+//  COFRE
+// ═══════════════════════════════════════
+// ALTERADO — cofre upload usa Worker R2
+let cofreFileObj = null;
+
+function handleCofreUpload(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  if (file.size > 10*1024*1024) return showToast("⚠️ Arquivo muito grande (máx 10MB)");
+  cofreNome    = file.name;
+  cofreTipo    = file.type.includes("pdf") ? "pdf" : "imagem";
+  cofreFileObj = file;
+  document.getElementById("cv-file-name").textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { cofreFile = e.target.result; };
+  reader.readAsDataURL(file);
+}
+
+async function salvarCofre() {
+  if (!podeUpload()) return showToast("⚠️ Limite de uploads atingido. Ative o plano Pro.");
+  const cat  = document.getElementById("cv-cat").value;
+  const desc = document.getElementById("cv-desc").value.trim();
+  if (!desc) return showToast("⚠️ Informe uma descrição");
+  if (!cofreFile && !cofreFileObj) return showToast("⚠️ Selecione um arquivo");
+
+  // ALTERADO — tenta upload R2 via Worker
+  let arquivoUrl = cofreFile; // base64 como fallback
+  if (currentUser?.id && cofreFileObj && !modoDemo) {
+    showToast("⏳ Enviando para Cloudflare R2…", 5000);
+    const url = await uploadArquivo(cofreFileObj);
+    if (url) arquivoUrl = url;
+  }
+
+  const doc = {
+    id: uuid(), categoria: cat, descricao: desc,
+    arquivo: arquivoUrl, nomeArquivo: cofreNome,
+    tipo: cofreTipo, criadoEm: new Date().toISOString()
+  };
+
+  // ALTERADO — salva no Worker (D1)
+  if (currentUser?.id && !modoDemo) {
+    const res = await api("POST", "/api/cofre", doc);
+    if (res?.error) console.warn("Worker insert cofre:", res.error);
+  }
+
+  cofre.push(doc);
+  saveCofre();
+  registrarUpload();
+  document.getElementById("cv-desc").value = "";
+  document.getElementById("cv-file").value = "";
+  document.getElementById("cv-file-name").textContent = "Clique para selecionar arquivo";
+  cofreFile = null; cofreNome = ""; cofreTipo = ""; cofreFileObj = null;
+  showToast("✅ Documento salvo no cofre!");
+  renderCofre();
+}
+
+function renderCofre() {
+  const grid = document.getElementById("cofre-grid");
+  const emptyEl = document.getElementById("cofre-empty");
+  if (!cofre.length) {
+    grid.innerHTML = "";
+    emptyEl.innerHTML = `<div class="empty"><div class="empty-icon">🗂️</div><p>Cofre vazio. Adicione documentos importantes.</p></div>`;
+    return;
+  }
+  emptyEl.innerHTML = "";
+  const catLabel = {comprovante:"Comprovante",juridico:"Jurídico",outro:"Outro"};
+  grid.innerHTML = cofre.map(c=>`
+    <div class="cofre-card">
+      <div class="cofre-thumb">
+        ${c.tipo==="imagem"?`<img src="${c.arquivo}" alt="${c.descricao}"/>`:
+          `<span style="font-size:36px">📄</span>`}
+      </div>
+      <div class="cofre-info">
+        <div class="cofre-cat">${catLabel[c.categoria]||c.categoria}</div>
+        <div class="cofre-desc" title="${c.descricao}">${c.descricao}</div>
+        <div class="cofre-actions">
+          <button class="btn btn-outline btn-sm" onclick="verCofre('${c.id}')">👁</button>
+          <button class="btn btn-outline btn-sm" onclick="baixarCofre('${c.id}')">⬇</button>
+          <button class="btn btn-r btn-sm" onclick="deletarCofre('${c.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+function verCofre(id) {
+  const c = cofre.find(x=>x.id===id);
+  if (!c) return;
+  if (c.tipo==="imagem") openModal(c.descricao,`<img src="${c.arquivo}" style="max-width:100%;border-radius:8px"/>`);
+  else openModal(c.descricao,`<div class="preview-pdf" style="padding:30px">📄 <span>${c.nomeArquivo}</span></div>`);
+}
+
+function baixarCofre(id) {
+  const c = cofre.find(x=>x.id===id);
+  if (!c) return;
+  const a = document.createElement("a");
+  a.href = c.arquivo; a.download = c.nomeArquivo||"documento";
+  a.click();
+}
+
+async function deletarCofre(id) {
+  if (!confirm("Excluir documento do cofre?")) return;
+  // ALTERADO — deleta no Worker (D1 + R2)
+  if (currentUser?.id && !modoDemo) {
+    await api("DELETE", `/api/cofre/${id}`);
+  }
+  cofre = cofre.filter(c => c.id !== id);
+  saveCofre();
+  renderCofre();
+  showToast("🗑️ Documento removido");
+}
+
+// ═══════════════════════════════════════
+//  RELATÓRIOS
+// ═══════════════════════════════════════
+function renderRelatorioPreview() {
+  const pagos = pags.filter(p=>p.status==="pago");
+  const total = pagos.reduce((s,p)=>s+Number(p.valor),0);
+  document.getElementById("rel-cards").innerHTML = `
+    <div class="rel-card"><div class="rc-label">Total Registros</div><div class="rc-val">${pags.length}</div></div>
+    <div class="rel-card"><div class="rc-label">Confirmados</div><div class="rc-val">${pagos.length}</div></div>
+    <div class="rel-card"><div class="rc-label">Valor Total Pago</div><div class="rc-val" style="font-size:20px">${fmtMoeda(total)}</div></div>`;
+
+  const actEl = document.getElementById("rel-actions");
+  const emptyEl = document.getElementById("rel-empty");
+  if (!pags.length) {
+    actEl.innerHTML = "";
+    emptyEl.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><p>Nenhum dado para gerar relatório.</p><button class="btn btn-g btn-sm" onclick="showView('adicionar')">Adicionar Pagamento</button></div>`;
+  } else {
+    emptyEl.innerHTML = "";
+    actEl.innerHTML = `
+      <button class="btn btn-n" onclick="gerarPDF('completo')">📄 Gerar PDF Completo</button>
+      <button class="btn btn-g" onclick="gerarPDF('mes')">📅 Gerar PDF do Mês Atual</button>`;
+  }
+}
+
+async function gerarPDF(tipo="completo") {
+  if (!pags.length) return showToast("⚠️ Nenhum dado para gerar relatório");
+  if (!window.jspdf) return showToast("⚠️ jsPDF não carregado");
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const u = getUserData();
+  const hoje = new Date();
+
+  let dados = [...pags];
+  if (tipo==="mes") {
+    const mesAtual = String(hoje.getMonth()+1).padStart(2,"0");
+    const anoAtual = hoje.getFullYear().toString();
+    dados = dados.filter(p=>p.mesReferencia===mesAtual&&p.anoReferencia===anoAtual);
+    if (!dados.length) return showToast("⚠️ Nenhum pagamento no mês atual");
+  }
+  dados.sort((a,b)=>(b.anoReferencia+b.mesReferencia).localeCompare(a.anoReferencia+a.mesReferencia));
+
+  // Cabeçalho navy
+  doc.setFillColor(1,43,64);
+  doc.rect(0,0,210,38,"F");
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18); doc.setFont(undefined,"bold");
+  doc.text("Relatório Pensão Check",105,16,{align:"center"});
+  doc.setFontSize(10); doc.setFont(undefined,"normal");
+  doc.text("Gerado em: "+hoje.toLocaleDateString("pt-BR"),105,26,{align:"center"});
+
+  // Dados do usuário
+  doc.setTextColor(50,50,50);
+  doc.setFontSize(11);
+  let y = 48;
+  doc.text("Responsável: "+(u.nome||"Demo User"),14,y); y+=7;
+  doc.text("E-mail: "+(u.email||""),14,y); y+=7;
+  doc.text("Plano: "+(u.plano||"free").toUpperCase(),14,y); y+=12;
+
+  // Resumo
+  const pagos2 = dados.filter(p=>p.status==="pago");
+  const totalPago = pagos2.reduce((s,p)=>s+Number(p.valor),0);
+  doc.setFillColor(240,253,244);
+  doc.rect(14,y-4,182,22,"F");
+  doc.setFontSize(10);
+  doc.text("Total de registros: "+dados.length,18,y+2);
+  doc.text("Pagamentos confirmados: "+pagos2.length,18,y+9);
+  doc.setFont(undefined,"bold");
+  doc.text("Valor total pago: "+fmtMoeda(totalPago),100,y+2);
+  doc.setFont(undefined,"normal");
+  y += 28;
+
+  // Cabeçalho tabela
+  doc.setFillColor(1,43,64);
+  doc.rect(14,y-4,182,10,"F");
+  doc.setTextColor(255,255,255); doc.setFontSize(9);
+  doc.text("Referência",18,y+2);
+  doc.text("Data",65,y+2);
+  doc.text("Valor",95,y+2);
+  doc.text("Forma",125,y+2);
+  doc.text("Status",165,y+2);
+  y += 10;
+
+  // Linhas
+  doc.setTextColor(50,50,50);
+  dados.forEach((p,i)=>{
+    if (y > 270) { doc.addPage(); y = 20; }
+    if (i%2===0) { doc.setFillColor(249,250,251); doc.rect(14,y-4,182,9,"F"); }
+    doc.setFontSize(9);
+    doc.text(mesRef(p.mesReferencia,p.anoReferencia).slice(0,18),18,y+1);
+    doc.text(fmtData(p.dataPagamento),65,y+1);
+    doc.text(fmtMoeda(p.valor),95,y+1);
+    doc.text(p.formaPagamento,125,y+1);
+    doc.setTextColor(p.status==="pago"?26:180, p.status==="pago"?122:100, p.status==="pago"?62:0);
+    doc.text(p.status==="pago"?"✓ Pago":"Pendente",165,y+1);
+    doc.setTextColor(50,50,50);
+    y += 9;
+  });
+
+  // Rodapé
+  doc.setFontSize(8); doc.setTextColor(150,150,150);
+  doc.text("Pensão Check — documento gerado automaticamente",105,290,{align:"center"});
+
+  const nome = tipo==="mes"?"relatorio-mes.pdf":"relatorio-completo.pdf";
+  doc.save(nome);
+  showToast("📥 PDF gerado com sucesso!");
+}
+
+// ═══════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════
+function loadConfig() {
+  const u = getUserData();
+  document.getElementById("cfg-nome").value  = u.nome  || "";
+  document.getElementById("cfg-email").value = u.email || "";
+  document.getElementById("cfg-lembrete").checked = !!u.lembretes;
+  // Plano
+  const pl = document.getElementById("plan-info");
+  const isPro = u.plano==="pro"&&u.planoValido&&new Date(u.planoValido)>new Date();
+  const dias = isPro ? Math.floor((new Date(u.planoValido)-new Date())/(1000*60*60*24)) :
+    Math.max(0, 90-Math.floor((new Date()-new Date(u.dataCadastro||new Date()))/(1000*60*60*24)));
+  pl.innerHTML = isPro
+    ? `<span class="plan-badge-big badge-pro">PRO ✓</span><span style="font-size:13px;color:var(--g700)">Válido por mais <strong>${dias}</strong> dias</span>`
+    : `<span class="plan-badge-big badge-free">FREE</span><span style="font-size:13px;color:var(--g700)">${dias>0?`<strong>${dias}</strong> dias restantes`:"Período gratuito encerrado"}</span>`;
+}
+
+function salvarConfig() {
+  const u = getUserData();
+  u.nome  = document.getElementById("cfg-nome").value.trim() || u.nome;
+  u.email = document.getElementById("cfg-email").value.trim() || u.email;
+  u.lembretes = document.getElementById("cfg-lembrete").checked;
+  saveUserData(u);
+  atualizarSbUser();
+  showToast("✅ Configurações salvas!");
+}
+
+function renderBeneficiariosConfig() {
+  const u = getUserData();
+  const benefs = u.beneficiarios || [];
+  const el = document.getElementById("benef-config-list");
+  const AVATAR_COLORS = ["#012B40","#1A7A3E","#7C3AED","#DC2626","#D97706","#0891B2"];
+
+  if (!benefs.length) {
+    el.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 16px;background:var(--g50);border-radius:10px;text-align:center;border:1.5px dashed var(--g300)">
+        <span style="font-size:32px">👤</span>
+        <p style="font-size:13px;color:var(--g500);max-width:280px">Nenhum beneficiário cadastrado. Clique em <strong>Adicionar</strong> para incluir filhos, dependentes ou outros.</p>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = benefs.map((b,i)=>{
+    const cor = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const inicial = b.nome[0].toUpperCase();
+    const emoji = getAvatarLetter(b.nome);
+    const nascFormatado = b.nascimento ? fmtData(b.nascimento) : "—";
+    const inicioFormatado = b.inicio ? fmtData(b.inicio) : "—";
+    const anos = b.nascimento ? Math.floor((new Date()-new Date(b.nascimento))/(365.25*24*60*60*1000)) : null;
+    return `
+      <div class="benef-list-item">
+        <div style="width:44px;height:44px;border-radius:50%;background:${cor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0">${inicial}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">
+            ${b.nome}
+            ${anos!==null?`<span class="benef-list-badge">${anos} anos</span>`:""}
+          </div>
+          <div style="font-size:12px;color:var(--g400);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap">
+            <span>🎂 Nasc.: ${nascFormatado}</span>
+            <span>📅 Pensão desde: ${inicioFormatado}</span>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="editarBeneficiario(${i})" title="Editar" style="color:var(--navy);border-color:var(--navy)">✏️</button>
+        <button class="btn btn-r btn-sm" onclick="removerBeneficiario(${i})" title="Remover">🗑️</button>
+      </div>`;
+  }).join("");
+}
+
+function toggleBenefForm(forceOpen) {
+  const f = document.getElementById("benef-form");
+  const btn = document.getElementById("btn-add-benef");
+  const isHidden = f.classList.contains("hidden");
+  const shouldOpen = forceOpen !== undefined ? forceOpen : isHidden;
+  f.classList.toggle("hidden", !shouldOpen);
+  if (btn) btn.textContent = shouldOpen ? "✕ Fechar" : "➕ Adicionar";
+  if (shouldOpen) {
+    document.getElementById("bf-nome").focus();
+    // Scroll to form
+    setTimeout(()=>f.scrollIntoView({behavior:"smooth",block:"nearest"}), 50);
+  } else {
+    // Reset form fields
+    ["bf-nome","bf-nasc","bf-inicio"].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value="";
+    });
+    document.getElementById("benef-form").dataset.editIdx = "";
+    const btnSalvar = document.getElementById("btn-benef-salvar");
+    if (btnSalvar) { btnSalvar.textContent = "✅ Salvar Beneficiário"; btnSalvar.disabled = true; }
+  }
+}
+
+function validateBenefForm() {
+  const nome = document.getElementById("bf-nome").value.trim();
+  const btn = document.getElementById("btn-benef-salvar");
+  if (btn) btn.disabled = nome.length < 2;
+}
+
+function editarBeneficiario(i) {
+  const u = getUserData();
+  const b = u.beneficiarios[i];
+  if (!b) return;
+  toggleBenefForm(true);
+  document.getElementById("bf-nome").value   = b.nome;
+  document.getElementById("bf-nasc").value   = b.nascimento || "";
+  document.getElementById("bf-inicio").value = b.inicio || "";
+  document.getElementById("benef-form").dataset.editIdx = i;
+  const btn = document.getElementById("btn-benef-salvar");
+  if (btn) { btn.textContent = "✏️ Atualizar Beneficiário"; btn.disabled = false; }
+  validateBenefForm();
+}
+
+function adicionarBeneficiario() {
+  const nome   = document.getElementById("bf-nome").value.trim();
+  const nasc   = document.getElementById("bf-nasc").value;
+  const inicio = document.getElementById("bf-inicio").value;
+  if (nome.length < 2) return showToast("⚠️ Informe o nome completo do beneficiário");
+  const u = getUserData();
+  if (!u.beneficiarios) u.beneficiarios = [];
+
+  const editIdx = document.getElementById("benef-form").dataset.editIdx;
+  const isEdit  = editIdx !== "" && editIdx !== undefined && editIdx !== null;
+
+  if (isEdit) {
+    const idx = parseInt(editIdx);
+    u.beneficiarios[idx] = {nome, nascimento:nasc, inicio};
+    saveUserData(u);
+    toggleBenefForm(false);
+    renderBeneficiariosConfig();
+    showToast("✏️ Beneficiário atualizado!");
+  } else {
+    // Verifica duplicata
+    if (u.beneficiarios.some(b=>b.nome.toLowerCase()===nome.toLowerCase()))
+      return showToast("⚠️ Já existe um beneficiário com este nome");
+    u.beneficiarios.push({nome, nascimento:nasc, inicio});
+    saveUserData(u);
+    toggleBenefForm(false);
+    renderBeneficiariosConfig();
+    showToast("✅ Beneficiário adicionado!");
+  }
+}
+
+function removerBeneficiario(i) {
+  const u = getUserData();
+  const nome = u.beneficiarios[i]?.nome || "este beneficiário";
+  if (!confirm(`Remover "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return;
+  u.beneficiarios.splice(i,1);
+  saveUserData(u);
+  // Fecha form se estava editando esse índice
+  const editIdx = document.getElementById("benef-form")?.dataset?.editIdx;
+  if (editIdx !== "" && parseInt(editIdx) === i) toggleBenefForm(false);
+  renderBeneficiariosConfig();
+  showToast("🗑️ Beneficiário removido");
+}
+
+function ativarLicenca() {
+  const key = document.getElementById("cfg-licenca").value.trim().toUpperCase();
+  if (key.length !== 12 || !/^[A-Z0-9]{12}$/.test(key))
+    return showToast("⚠️ Chave inválida. Deve ter 12 caracteres alfanuméricos.");
+  const u = getUserData();
+  u.plano = "pro";
+  u.planoValido = new Date(Date.now()+365*24*60*60*1000).toISOString();
+  saveUserData(u);
+  document.getElementById("cfg-licenca").value = "";
+  atualizarBadgePlano();
+  loadConfig();
+  showToast("🎉 Licença Pro ativada com sucesso!");
+}
+
+// ═══════════════════════════════════════
+//  INIT — Cloudflare Worker + Google GSI
+// ═══════════════════════════════════════
+window.onload = async () => {
+  // PWA — Web App Manifest
+  const manifest = {
+    name: "Pensão Check", short_name: "PensãoCheck",
+    description: "Controle de pagamentos de pensão alimentícia",
+    start_url: "./", display: "standalone", orientation: "portrait",
+    background_color: "#012B40", theme_color: "#012B40",
+    icons: [{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23012B40'/><text y='.85em' font-size='380' x='50%' text-anchor='middle'>⚖️</text></svg>", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+  };
+  const mBlob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+  const mLink = document.createElement("link");
+  mLink.rel = "manifest"; mLink.href = URL.createObjectURL(mBlob);
+  document.head.appendChild(mLink);
+
+  // PWA — Service Worker (cache-first, suporte offline)
+  if ("serviceWorker" in navigator) {
+    const swCode = `const CACHE="pensao-check-v3";const ASSETS=[self.location.href];self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));return res;})))});`;
+    const swBlob = new Blob([swCode], { type: "application/javascript" });
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+  }
+
+  // ALTERADO — Restaura sessão do Google salva no localStorage
+  // (Google Identity Services não usa redirects — a sessão é salva localmente)
+  const savedSession = localStorage.getItem("pc_session");
+  if (savedSession) {
+    try {
+      currentUser = JSON.parse(savedSession);
+      modoDemo = false;
+      await goApp();
+      return;
+    } catch { localStorage.removeItem("pc_session"); }
+  }
+
+  // Sem sessão → tela de login
+  // Inicializa Google GSI silenciosamente para auto-select se disponível
+  if (!GOOGLE_CLIENT_ID.includes("SEU_GOOGLE") && window.google?.accounts?.id) {
+    google.accounts.id.initialize({
+      client_id:   GOOGLE_CLIENT_ID,
+      callback:    handleGoogleCredential,
+      auto_select: true  // tenta logar automaticamente se usuário já autorizou
+    });
+    google.accounts.id.prompt(); // One Tap silencioso
+  }
+};
+</script>
+</body>
+</html>
