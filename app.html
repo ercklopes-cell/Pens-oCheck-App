@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StepBook — Leitura Ativa com IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+/* ── TOKENS ──────────────────────────────────────────── */
+:root {
+  --bg:#030810;--bg2:#07111f;--bg3:#0d1a2e;
+  --surface:#0e1c30;--surface2:#152338;
+  --border:rgba(222,173,42,.10);--border2:rgba(222,173,42,.22);--border3:rgba(222,173,42,.40);
+  --text:#FFF;--text2:rgba(255,255,255,.55);--text3:rgba(255,255,255,.28);
+  --gold:#DEAD2A;--gold2:#f5c842;
+  --gold-dim:rgba(222,173,42,.08);--gold-dim2:rgba(222,173,42,.15);
+  --green:#3aaa72;--red:#d05050;
+  --radius:6px;--radius-lg:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:.025;pointer-events:none;z-index:9999}
+img{display:block;max-width:100%}a{color:inherit;text-decoration:none}button{cursor:pointer;font-family:inherit}input,textarea{font-family:inherit}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-weight:600;font-size:.80rem;letter-spacing:.08em;text-transform:uppercase;padding:11px 22px;transition:all .15s ease;white-space:nowrap}
+.btn-gold{background:var(--gold);color:#000}.btn-gold:hover{background:var(--gold2);transform:translateY(-1px)}.btn-gold:active{transform:translateY(0)}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--gold)}.btn-ghost:hover{border-color:var(--gold);background:var(--gold-dim)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{filter:brightness(1.1)}
+.btn-sm{padding:7px 14px;font-size:.73rem}.btn-lg{padding:14px 32px;font-size:.86rem}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+
+/* ── INPUTS ──────────────────────────────────────────── */
+.input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:.90rem;padding:11px 14px;outline:none;transition:border-color .2s}
+.input:focus{border-color:var(--gold)}textarea.input{resize:vertical;min-height:80px}
+
+/* ── BADGE ───────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:.70rem;font-weight:700;letter-spacing:.10em;text-transform:uppercase}
+.badge-gold{background:var(--gold-dim2);color:var(--gold);border:1px solid var(--border2)}
+
+/* ── DIVIDER ─────────────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+/* ── PROGRESS BAR ────────────────────────────────────── */
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;transition:width .5s ease}
+
+/* ── SECTION LABEL ───────────────────────────────────── */
+.section-label{display:flex;align-items:center;gap:12px;color:var(--gold);font-size:.70rem;font-weight:600;letter-spacing:.20em;text-transform:uppercase;margin-bottom:20px}
+.section-label::before,.section-label::after{content:'';flex:1;max-width:56px;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+.section-label::after{background:linear-gradient(90deg,var(--gold),transparent)}
+
+/* ── OVERLAY / MODAL ─────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease}
+.overlay.center{align-items:center}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:28px 24px 36px;width:100%;max-width:460px;animation:slideUp .3s cubic-bezier(.22,1,.36,1)}
+.overlay.center .modal{border-radius:var(--radius-lg);animation:scaleIn .25s cubic-bezier(.22,1,.36,1)}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--text);margin-bottom:6px}
+.modal-sub{font-size:.84rem;color:var(--text2);margin-bottom:24px}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.modal-actions .btn{flex:1}
+
+/* ── SPINNER / LOADING ───────────────────────────────── */
+.spinner{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.loading-logo{font-family:'Playfair Display',serif;font-size:2rem;color:var(--gold);letter-spacing:.05em}
+.loading-steps{font-size:.82rem;color:var(--text2);text-align:center;max-width:280px;line-height:1.6}
+
+/* ── Q-BLOCK ─────────────────────────────────────────── */
+.q-block{background:var(--gold-dim);border:1px solid var(--border2);border-left:4px solid var(--gold);border-radius:0 var(--radius) var(--radius) 0;padding:24px;margin:32px 0}
+.q-block-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.q-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1.8s ease-in-out infinite;flex-shrink:0}
+.q-badge{font-size:.63rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold)}
+.q-question{font-family:'Playfair Display',serif;font-style:italic;font-size:1.05rem;color:var(--text);line-height:1.6;margin-bottom:18px}
+.q-status-good{display:flex;align-items:center;gap:8px;color:var(--green);font-size:.8rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;background:rgba(58,170,114,.08);border:1px solid rgba(58,170,114,.2);border-radius:var(--radius)}
+.q-status-close{color:var(--gold);font-size:.84rem;padding:12px 14px;background:var(--gold-dim);border:1px solid var(--border2);border-radius:var(--radius);margin-bottom:12px;line-height:1.5}
+.q-status-retry{color:var(--red);font-size:.84rem;padding:12px 14px;background:rgba(208,80,80,.08);border:1px solid rgba(208,80,80,.2);border-radius:var(--radius);margin-bottom:12px}
+.mcq-options{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.mcq-option{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;text-align:left;color:var(--text);font-size:.9rem}
+.mcq-option:hover{border-color:var(--border2);background:var(--surface)}
+.mcq-option.selected{border-color:var(--gold);background:var(--gold-dim)}
+.mcq-option.correct{border-color:var(--green);background:rgba(58,170,114,.08)}
+.mcq-option.wrong{border-color:var(--red);background:rgba(208,80,80,.08)}
+.opt-letter{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--border2);color:var(--gold);font-size:.7rem;font-weight:700;flex-shrink:0}
+
+/* ── LOCKED BLUR / BOOKMARK ──────────────────────────── */
+.locked-blur{filter:blur(5px);user-select:none;pointer-events:none;transition:filter .5s ease}
+.bookmark-btn{position:fixed;right:0;top:50%;transform:translateY(-50%);background:var(--gold);color:#000;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.06em;padding:8px 10px 12px;border-radius:6px 0 0 6px;cursor:pointer;border:none;writing-mode:vertical-rl;z-index:100;clip-path:polygon(0 0,100% 0,100% 85%,50% 100%,0 85%);transition:background .15s}
+.bookmark-btn:hover{background:var(--gold2)}
+
+/* ── READER BODY ─────────────────────────────────────── */
+.reader-page-text{font-family:'Crimson Pro',serif;font-size:1.08rem;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;margin-bottom:8px}
+.reader-page-label{text-align:center;color:var(--text3);font-size:.70rem;letter-spacing:.12em;margin-bottom:16px;user-select:none}
+.quote-btn{position:fixed;bottom:28px;right:20px;width:48px;height:48px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(222,173,42,.45);z-index:50;transition:transform .15s ease,box-shadow .15s ease}
+.quote-btn:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(222,173,42,.6)}
+
+/* ── TOAST ───────────────────────────────────────────── */
+#toast-container{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 20px;font-size:.84rem;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideUp .3s ease;pointer-events:auto}
+
+/* ── ANIMATIONS ──────────────────────────────────────── */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes scaleIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* ── SCREENS ─────────────────────────────────────────── */
+.screen{display:none}
+.screen.active{display:block}
+
+/* ── DROPZONE ────────────────────────────────────────── */
+.dropzone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gold-dim)}
+.dropzone:hover,.dropzone.drag{border-color:var(--gold);background:var(--gold-dim2)}
+.dropzone-icon{font-size:2rem;margin-bottom:12px}
+.dropzone-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text);margin-bottom:6px}
+.dropzone-sub{font-size:.82rem;color:var(--text2)}
+
+/* ── BOOK CARD ───────────────────────────────────────── */
+.books-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.book-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:border-color .2s,transform .2s;cursor:pointer}
+.book-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.book-cover{aspect-ratio:2/3;background:var(--bg3);position:relative;overflow:hidden}
+.book-cover img{width:100%;height:100%;object-fit:cover}
+.book-cover-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface);font-size:2rem}
+.book-cover-overlay{position:absolute;inset:0;background:rgba(3,8,16,.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;color:var(--gold);font-size:1.5rem}
+.book-card:hover .book-cover-overlay{opacity:1}
+.book-meta{padding:10px 12px 4px}
+.book-title{font-family:'Playfair Display',serif;font-size:.82rem;font-weight:600;color:var(--text);line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:3px}
+.book-author{font-size:.72rem;color:var(--text3)}
+.book-pct{font-size:.68rem;color:var(--gold);font-weight:600;margin-top:4px}
+.book-actions{display:flex;justify-content:flex-end;gap:4px;padding:4px 8px 8px}
+.book-action-btn{background:none;border:none;color:var(--text3);font-size:.8rem;cursor:pointer;padding:4px 6px;border-radius:4px;transition:color .15s}
+.book-action-btn:hover{color:var(--gold)}
+.book-action-btn.del:hover{color:var(--red)}
+
+/* ── CHAP PANEL ──────────────────────────────────────── */
+.chap-panel{position:fixed;inset:0;z-index:300;display:flex}
+.chap-backdrop{flex:1;background:rgba(0,0,0,.5)}
+.chap-drawer{width:280px;background:var(--bg2);border-left:1px solid var(--border2);overflow-y:auto;animation:slideLeft .25s cubic-bezier(.22,1,.36,1)}
+@keyframes slideLeft{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.chap-item{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+.chap-item:hover{background:var(--gold-dim)}
+.chap-item.locked{opacity:.55}
+.chap-lock{font-size:.75rem}
+.chap-name{font-size:.85rem;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chap-page{font-size:.70rem;color:var(--text3)}
+
+/* ── SHARE MODAL CANVAS ──────────────────────────────── */
+#share-canvas-preview{width:100%;border-radius:8px;border:1px solid var(--border2);margin-bottom:12px}
+.share-box{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px}
+.share-msg{font-size:.86rem;color:var(--gold);font-weight:700;letter-spacing:.02em}
+.share-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+<div id="app"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://lmwjkmtdyalqvloudlla.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtd2prbXRkeWFscXZsb3VkbGxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NDQ2MzMsImV4cCI6MjA4OTEyMDYzM30.e4D-Cm2QJ2dxqtdoNUBMPq2sD5WbCo4eKYCxmYR36qE'
+const LOGO_URL     = 'https://i.ibb.co/Xkfz5QKL/sua-logo-stepbook.png'
+const CARD_BASE    = 'https://i.ibb.co/tpfkJpDG/dreamina-2026-03-15-6664-Remove-the-central-quote-text-Se-desej.jpg'
+const VALID_KEYS   = {
+  'STEP-JAN26-X7K2':1,'STEP-FEV26-M3P9':1,'STEP-MAR26-Q5R1':1,'STEP-ABR26-T8W4':1,
+  'STEP-MAI26-Y2N6':1,'STEP-JUN26-K9P3':1,'STEP-JUL26-H4F7':1,'STEP-AGO26-B6D1':1,
+  'STEP-SET26-C3M8':1,'STEP-OUT26-Z5R2':1,'STEP-NOV26-W7K9':1,'STEP-DEZ26-J1P4':1,
+}
+
+// PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }
+})
+
+const S = {
+  user: null,
+  plan: 'free',
+  books: [],
+  currentBook: null,
+  pages: [],
+  questions: [],
+  progress: 0,
+  screen: 'loading', // loading | auth | library | importing | reader
+  chapOpen: false,
+  shareOpen: false,
+  shareMode: 'feed',
+  quoteText: '',
+  reflPrompt: null,
+  importStep: 0,
+  importError: null,
+}
+
+// ═══════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg, dur = 3000) {
+  const el = document.createElement('div')
+  el.className = 'toast'
+  el.textContent = msg
+  document.getElementById('toast-container').appendChild(el)
+  setTimeout(() => el.remove(), dur)
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+async function initAuth() {
+  const { data, error } = await sb.auth.getSession()
+  if (error || !data.session) {
+    await sb.auth.signOut().catch(() => {})
+    S.user = null
+  } else {
+    S.user = data.session.user
+    await loadPlan()
+  }
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN') {
+      S.user = session.user
+      await loadPlan()
+      await loadBooks()
+      render('library')
+    } else if (event === 'SIGNED_OUT') {
+      S.user = null
+      S.plan = 'free'
+      S.books = []
+      render('auth')
+    } else if (event === 'TOKEN_REFRESHED') {
+      S.user = session?.user ?? null
+    }
+  })
+  render(S.user ? 'library' : 'auth')
+}
+
+async function signIn(email, password) {
+  const { error } = await sb.auth.signInWithPassword({ email, password })
+  if (error) throw error
+}
+async function signUp(email, password) {
+  const { error } = await sb.auth.signUp({ email, password })
+  if (error) throw error
+  return true
+}
+async function signOut() {
+  await sb.auth.signOut()
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAN
+// ═══════════════════════════════════════════════════════
+async function loadPlan() {
+  if (!S.user) return
+  const { data } = await sb.from('profiles').select('plan,plan_expires_at').eq('id', S.user.id).single()
+  if (data?.plan === 'pro') {
+    const expired = data.plan_expires_at && new Date(data.plan_expires_at) < new Date()
+    S.plan = expired ? 'free' : 'pro'
+  }
+}
+async function activateKey(key) {
+  const k = key.trim().toUpperCase()
+  if (!VALID_KEYS[k]) return { ok: false, msg: 'Chave inválida.' }
+  const { data: used } = await sb.from('used_keys').select('id').eq('key', k).single()
+  if (used) return { ok: false, msg: 'Chave já utilizada.' }
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  await sb.from('profiles').update({ plan: 'pro', plan_expires_at: expiresAt }).eq('id', S.user.id)
+  await sb.from('used_keys').insert({ key: k, user_id: S.user.id })
+  S.plan = 'pro'
+  return { ok: true, msg: `Pro ativado! Válido até ${new Date(expiresAt).toLocaleDateString('pt-BR')}.` }
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOKS
+// ═══════════════════════════════════════════════════════
+async function loadBooks() {
+  if (!S.user) return
+  const { data } = await sb.from('books').select('*').eq('user_id', S.user.id).order('added_at', { ascending: false })
+  S.books = data ?? []
+}
+async function saveBook(book) {
+  const { pages, ...meta } = book
+  const row = { ...meta, user_id: S.user.id, updated_at: new Date().toISOString() }
+  const { data, error } = await sb.from('books').upsert(row, { onConflict: 'id' }).select().single()
+  if (error) throw error
+  await loadBooks()
+  return data
+}
+async function deleteBook(bookId) {
+  await sb.from('books').delete().eq('id', bookId)
+  await sb.storage.from('pdfs').remove([`${S.user.id}/${bookId}.pdf`])
+  await sb.storage.from('covers').remove([`${S.user.id}/${bookId}.jpg`])
+  await loadBooks()
+}
+async function uploadPDF(bookId, file) {
+  const path = `${S.user.id}/${bookId}.pdf`
+  const { error } = await sb.storage.from('pdfs').upload(path, file, { upsert: true })
+  if (error) throw error
+  return path
+}
+async function uploadCover(bookId, file) {
+  const path = `${S.user.id}/${bookId}.jpg`
+  const { error } = await sb.storage.from('covers').upload(path, file, { upsert: true, contentType: 'image/jpeg' })
+  if (error) throw error
+  const { data } = sb.storage.from('covers').getPublicUrl(path)
+  return data.publicUrl
+}
+async function updateProgress(bookId, progress) {
+  await sb.from('books').update({ progress }).eq('id', bookId)
+  S.books = S.books.map(b => b.id === bookId ? { ...b, progress } : b)
+  if (S.currentBook?.id === bookId) S.currentBook.progress = progress
+}
+async function updateQuestions(bookId, questions) {
+  await sb.from('books').update({ questions }).eq('id', bookId)
+  S.questions = questions
+  S.books = S.books.map(b => b.id === bookId ? { ...b, questions } : b)
+}
+async function saveReflection(bookId, reflection) {
+  const book = S.books.find(b => b.id === bookId)
+  const refs = [...(book?.reflections ?? []), reflection]
+  await sb.from('books').update({ reflections: refs }).eq('id', bookId)
+  S.books = S.books.map(b => b.id === bookId ? { ...b, reflections: refs } : b)
+  if (S.currentBook?.id === bookId) S.currentBook.reflections = refs
+}
+async function loadPages(bookId) {
+  const { data } = await sb.from('book_pages').select('page_num,text').eq('book_id', bookId).order('page_num')
+  if (data) S.pages = data.map(r => ({ num: r.page_num, text: r.text }))
+}
+
+// ═══════════════════════════════════════════════════════
+// PDF PROCESSING
+// ═══════════════════════════════════════════════════════
+async function readPDF(file) {
+  const buf  = await file.arrayBuffer()
+  const pdf  = await pdfjsLib.getDocument({ data: buf }).promise
+  const pages = []
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page    = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    const text    = content.items.map(x => x.str).join(' ').trim()
+    pages.push({ num: i, text })
+  }
+  let coverB64 = null
+  try {
+    const page     = await pdf.getPage(1)
+    const viewport = page.getViewport({ scale: 0.6 })
+    const canvas   = document.createElement('canvas')
+    canvas.width   = viewport.width; canvas.height = viewport.height
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
+    coverB64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1]
+  } catch {}
+  return { pages, coverB64, totalPages: pdf.numPages }
+}
+
+function detectChapters(pages) {
+  const patterns = [
+    /^(cap[íi]tulo\s+[\divxlcdmIVXLCDM]+[.\s:])/i,
+    /^(chapter\s+\d+)/i,
+    /^(parte\s+[\divxlcdmIVXLCDM]+)/i,
+    /^(\d{1,2}\.\s{1,3}[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÜ][^\n]{3,60})/m,
+  ]
+  const chapters = []
+  for (const page of pages) {
+    const first = page.text.split(/\n/)[0].trim()
+    for (const re of patterns) {
+      if (re.test(first)) { chapters.push({ title: first.slice(0,80), pageNum: page.num, locked: false }); break }
+    }
+  }
+  if (chapters.length < 2) {
+    const step = Math.floor(pages.length / 8)
+    return Array.from({ length: 8 }, (_, i) => ({ title: `Seção ${i+1}`, pageNum: pages[i*step]?.num ?? 1, locked: i%2 !== 0 }))
+  }
+  return chapters.map((c, i) => ({ ...c, locked: i%2 !== 0 }))
+}
+
+function injectAutoMCQ(questions, total) {
+  const pts = [
+    { idx: Math.floor(total*.25), label:'25%' },
+    { idx: Math.round(total*.50), label:'50%' },
+    { idx: Math.round(total*.75), label:'75%' },
+    { idx: total-1,               label:'100%' },
+  ]
+  for (const pt of pts) {
+    if (!questions.some(q => Math.abs(q.beforePage - pt.idx) <= 3)) {
+      questions.push({
+        beforePage: pt.idx, qtype:'mcq', type:'Quiz',
+        question: `Checkpoint ${pt.label}: Qual das afirmações melhor resume o que você leu até aqui?`,
+        options: ['Faz um bom resumo do conteúdo lido','Não representa bem o que foi lido'],
+        correct: 0, answered: false, answer: null, quality: null, _auto: true,
+      })
+    }
+  }
+  return questions.sort((a,b) => a.beforePage - b.beforePage)
+}
+
+async function fetchBookMeta(title) {
+  try {
+    const res  = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=1`)
+    const data = await res.json()
+    const item = data.items?.[0]?.volumeInfo
+    if (!item) return {}
+    return { title: item.title||title, author: item.authors?.[0]||'Autor desconhecido', description: item.description||'', coverUrl: item.imageLinks?.thumbnail||'' }
+  } catch { return {} }
+}
+
+function guessEmoji(title) {
+  const t = title.toLowerCase()
+  if (/psicolog|mente|comportamento|habit/.test(t)) return '🧠'
+  if (/lider|gestão|empresa|negócio|empreend/.test(t)) return '💼'
+  if (/financ|invest|dinheiro|riqueza/.test(t)) return '💰'
+  if (/filosofia|plato|aristotel|estoic/.test(t)) return '🏛️'
+  if (/história|guerra|impér/.test(t)) return '⚔️'
+  if (/romance|amor|relacionamento/.test(t)) return '❤️'
+  if (/ciência|física|biolog|evolução/.test(t)) return '🔬'
+  if (/programação|código|software|tech/.test(t)) return '💻'
+  return '📖'
+}
+
+function cleanTitle(t='') {
+  return t.replace(/[-_]/g,' ').replace(/\.(pdf|txt)$/i,'').replace(/\s+/g,' ').trim()
+}
+
+// ═══════════════════════════════════════════════════════
+// AI
+// ═══════════════════════════════════════════════════════
+async function callAI(action, payload) {
+  const res = await fetch('/api/ai', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action, payload })
+  })
+  if (!res.ok) throw new Error(`AI error: ${res.status}`)
+  const data = await res.json()
+  if (data.error) throw new Error(data.error)
+  return data.result
+}
+
+async function cleanTextAI(pages, title) {
+  const BATCH = 6; const cleaned = []
+  for (let i = 0; i < pages.length; i += BATCH) {
+    const batch = pages.slice(i, i+BATCH)
+    const text  = batch.map(p => `[PAGE ${p.num}]\n${p.text}`).join('\n\n')
+    try {
+      const result = await callAI('cleanText', { text, title })
+      const parsed = typeof result === 'string' ? JSON.parse(result) : result
+      cleaned.push(...parsed)
+    } catch { cleaned.push(...batch) }
+  }
+  return cleaned
+}
+
+async function makeQuestionsAI(pages, title, chapters) {
+  const sample = pages.slice(0, Math.min(pages.length, 60))
+  const text   = sample.map(p => `[PAGE ${p.num}]\n${p.text}`).join('\n\n')
+  const chaps  = chapters.map(c => `${c.title} (pág ${c.pageNum})`).join(', ')
+  try {
+    const result = await callAI('makeQuestions', { text, title, chapters: chaps })
+    const parsed = typeof result === 'string' ? JSON.parse(result) : result
+    return Array.isArray(parsed) ? parsed : []
+  } catch { return [] }
+}
+
+async function evalAnswerAI(question, answer, context) {
+  const result = await callAI('evalAnswer', { question, answer, context })
+  const parsed = typeof result === 'string' ? JSON.parse(result) : result
+  return parsed
+}
+
+// ═══════════════════════════════════════════════════════
+// READER HELPERS
+// ═══════════════════════════════════════════════════════
+function isPageLocked(pageNum) {
+  if (!S.currentBook) return false
+  for (const ch of (S.currentBook.chapters || [])) {
+    if (!ch.locked) continue
+    if (pageNum >= ch.pageNum) {
+      const gate = S.questions.find(q => q.beforePage >= ch.pageNum-1 && q.beforePage <= ch.pageNum+1)
+      if (gate && gate.quality === 'good') continue
+      if (gate && gate.quality !== 'good') {
+        const next = (S.currentBook.chapters||[]).find(c => !c.locked && c.pageNum > ch.pageNum)
+        if (!next || pageNum < next.pageNum) return true
+      }
+    }
+  }
+  return false
+}
+
+// ═══════════════════════════════════════════════════════
+// CANVAS — SHARE CARD
+// ═══════════════════════════════════════════════════════
+let cardCount = 0
+
+async function generatePremiumCard(canvas, quoteText, bookTitle) {
+  const ctx = canvas.getContext('2d')
+  const W = 1080, H = 1920
+  canvas.width = W; canvas.height = H
+
+  const baseImg = await new Promise(resolve => {
+    const img = new Image(); img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img); img.onerror = () => resolve(null)
+    img.src = CARD_BASE
+  })
+
+  if (baseImg) ctx.drawImage(baseImg, 0, 0, W, H)
+  else { ctx.fillStyle = '#0a1428'; ctx.fillRect(0, 0, W, H) }
+
+  const ZONE_TOP = 790, ZONE_BOTTOM = 1360, ZONE_H = ZONE_BOTTOM - ZONE_TOP
+  ctx.textAlign = 'center'
+
+  const quote    = quoteText.length > 100 ? quoteText.slice(0,97)+'...' : quoteText
+  const Q_FONT   = 'italic bold 62px "Playfair Display", serif'
+  const T_FONT   = '600 38px "Playfair Display", serif'
+  const LBL_FONT = 'italic 400 32px "Playfair Display", serif'
+  const Q_LH = 80, T_LH = 50
+
+  ctx.font = Q_FONT
+  const qLines = measureLines(ctx, `\u201c${quote}\u201d`, W-150)
+  ctx.font = T_FONT
+  const tLines = measureLines(ctx, bookTitle, W-160)
+
+  const totalH = qLines.length * Q_LH + 72 + 38 + 18 + tLines.length * T_LH
+  let cy = ZONE_TOP + Math.round((ZONE_H - totalH) / 2) + Q_LH
+
+  ctx.fillStyle = '#F4EFEA'; ctx.font = Q_FONT
+  for (const l of qLines) { ctx.fillText(l, W/2, cy); cy += Q_LH }
+  cy += 68
+  ctx.fillStyle = 'rgba(212,175,55,.70)'; ctx.font = LBL_FONT
+  ctx.fillText('— Livro —', W/2, cy)
+  cy += 44
+  ctx.fillStyle = '#D4AF37'; ctx.font = T_FONT
+  for (const l of tLines) { ctx.fillText(l, W/2, cy); cy += T_LH }
+
+  return canvas.toDataURL('image/png', 1.0)
+}
+
+function measureLines(ctx, text, maxW) {
+  const words = text.split(' '); const lines = []; let line = ''
+  for (const w of words) {
+    const test = line + w + ' '
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line.trim()); line = w+' ' }
+    else line = test
+  }
+  if (line.trim()) lines.push(line.trim())
+  return lines
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════════════════
+function render(screen) {
+  S.screen = screen
+  const app = document.getElementById('app')
+
+  if (screen === 'loading')   { app.innerHTML = renderLoading(); return }
+  if (screen === 'auth')      { app.innerHTML = renderAuth(); bindAuth(); return }
+  if (screen === 'library')   { app.innerHTML = renderLibrary(); bindLibrary(); return }
+  if (screen === 'importing') { app.innerHTML = renderImporting(); return }
+  if (screen === 'reader')    { app.innerHTML = renderReader(); bindReader(); return }
+}
+
+// ── LOADING ───────────────────────────────────────────
+function renderLoading() {
+  return `<div class="loading-overlay">
+    <img src="${LOGO_URL}" style="width:80px;filter:drop-shadow(0 0 14px rgba(222,173,42,.5))" />
+    <div class="loading-logo">StepBook</div>
+    <div class="spinner"></div>
+    <p style="color:var(--text2);font-size:.8rem;margin-top:8px">Conectando…</p>
+  </div>`
+}
+
+// ── AUTH ──────────────────────────────────────────────
+function renderAuth() {
+  return `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden">
+    <div style="position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(222,173,42,.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none"></div>
+    <div style="width:100%;max-width:400px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:36px 32px;position:relative">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:28px">
+        <img src="${LOGO_URL}" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(222,173,42,.5))" />
+        <span style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--gold);letter-spacing:.04em">StepBook</span>
+      </div>
+      <h1 id="auth-title" style="font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--text);margin-bottom:6px">Bem-vindo de volta</h1>
+      <p id="auth-sub" style="font-size:.88rem;color:var(--text2);margin-bottom:28px">Sua biblioteca te espera.</p>
+      <form id="auth-form" style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:.78rem;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase">E-mail</label>
+          <input id="auth-email" class="input" type="email" required placeholder="seu@email.com" autocomplete="email" />
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:.78rem;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase">Senha</label>
+          <input id="auth-pass" class="input" type="password" required minlength="6" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button id="auth-submit" class="btn btn-gold" type="submit" style="width:100%;margin-top:8px;justify-content:center">Entrar</button>
+      </form>
+      <div class="divider"></div>
+      <p style="text-align:center;font-size:.85rem;color:var(--text2)">
+        Não tem conta?
+        <button id="auth-switch" style="background:none;border:none;color:var(--gold);font-weight:600;cursor:pointer;font-size:.85rem;text-decoration:underline">Criar agora</button>
+      </p>
+    </div>
+  </div>`
+}
+
+function bindAuth() {
+  let mode = 'login'
+  const form  = document.getElementById('auth-form')
+  const sw    = document.getElementById('auth-switch')
+  const title = document.getElementById('auth-title')
+  const sub   = document.getElementById('auth-sub')
+  const btn   = document.getElementById('auth-submit')
+  const pass  = document.getElementById('auth-pass')
+
+  sw.onclick = () => {
+    mode = mode === 'login' ? 'signup' : 'login'
+    title.textContent = mode === 'login' ? 'Bem-vindo de volta' : 'Criar conta'
+    sub.textContent   = mode === 'login' ? 'Sua biblioteca te espera.' : 'Comece sua jornada de leitura ativa.'
+    btn.textContent   = mode === 'login' ? 'Entrar' : 'Criar conta'
+    sw.textContent    = mode === 'login' ? 'Criar agora' : 'Entrar'
+    pass.autocomplete = mode === 'login' ? 'current-password' : 'new-password'
+  }
+
+  form.onsubmit = async (e) => {
+    e.preventDefault()
+    btn.disabled = true
+    btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> Aguarde…'
+    const email = document.getElementById('auth-email').value
+    const pass  = document.getElementById('auth-pass').value
+    try {
+      if (mode === 'login') {
+        await signIn(email, pass)
+      } else {
+        await signUp(email, pass)
+        toast('Conta criada! Verifique seu e-mail para confirmar.')
+      }
+    } catch (err) {
+      toast(err.message || 'Erro ao entrar.')
+      btn.disabled = false
+      btn.textContent = mode === 'login' ? 'Entrar' : 'Criar conta'
+    }
+  }
+}
+
+// ── LIBRARY ───────────────────────────────────────────
+function renderLibrary() {
+  const isPro = S.plan === 'pro'
+  const booksHTML = S.books.length === 0
+    ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center">
+        <span style="font-size:3rem">📚</span>
+        <p style="color:var(--text2);font-size:.9rem;margin-top:12px">Sua biblioteca está vazia. Importe um PDF para começar.</p>
+      </div>`
+    : `<div class="books-grid">${S.books.map(b => renderBookCard(b)).join('')}</div>`
+
+  return `<div style="min-height:100vh;background:var(--bg)">
+    <!-- NAV -->
+    <nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(3,8,16,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)">
+      <span style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--gold)">StepBook <span style="font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:400;color:var(--text3)">— Leitura Interativa</span></span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="badge badge-gold">${isPro ? '⭐ Pro' : 'Grátis'}</span>
+        <button class="btn btn-ghost btn-sm" id="btn-signout">Sair</button>
+      </div>
+    </nav>
+
+    <div style="max-width:640px;margin:0 auto;padding:32px 20px 80px">
+      <!-- HERO -->
+      <header style="text-align:center;margin-bottom:36px">
+        <div style="display:flex;justify-content:center;margin-bottom:20px">
+          <img src="${LOGO_URL}" style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(212,175,55,.55))" />
+        </div>
+        <p style="display:flex;align-items:center;justify-content:center;gap:12px;color:var(--gold);font-size:.68rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;margin-bottom:16px">
+          <span style="display:inline-block;width:40px;height:1px;background:linear-gradient(90deg,transparent,var(--gold))"></span>
+          Mentor Cognitivo
+          <span style="display:inline-block;width:40px;height:1px;background:linear-gradient(90deg,var(--gold),transparent)"></span>
+        </p>
+        <h1 style="font-family:'Playfair Display',serif;font-size:clamp(1.6rem,5vw,2.4rem);font-weight:700;line-height:1.25;color:var(--text);margin-bottom:14px">
+          Não é um leitor.<br/><em style="color:var(--gold)">É um Mentor Cognitivo.</em>
+        </h1>
+        <p style="color:var(--text2);font-size:.92rem;line-height:1.6">Importe seu PDF. Responda perguntas. Desbloqueie cada capítulo.</p>
+      </header>
+
+      ${!isPro ? `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:20px">
+        <span style="font-size:.84rem;color:var(--text2)">Plano Grátis · ${S.books.length}/1 livro</span>
+        <button class="btn btn-gold btn-sm" id="btn-upgrade">Upgrade Pro ⭐</button>
+      </div>` : ''}
+
+      <!-- DROPZONE -->
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">📄</div>
+        <div class="dropzone-title">Arraste um PDF aqui</div>
+        <div class="dropzone-sub">ou clique para selecionar</div>
+        <input type="file" id="file-input" accept=".pdf" style="display:none" />
+      </div>
+
+      <!-- LIBRARY -->
+      <section style="margin-top:48px">
+        <div class="section-label">Minha Biblioteca</div>
+        ${booksHTML}
+      </section>
+    </div>
+
+    <!-- PAYWALL MODAL -->
+    <div id="paywall-modal" style="display:none"></div>
+    <!-- DELETE MODAL -->
+    <div id="delete-modal" style="display:none"></div>
+  </div>`
+}
+
+function renderBookCard(book) {
+  const cover = book.cover_url
+    ? `<img src="${book.cover_url}" alt="${book.title}" />`
+    : book.cover_b64
+    ? `<img src="data:image/jpeg;base64,${book.cover_b64}" alt="${book.title}" />`
+    : `<div class="book-cover-empty"><span>${book.emoji||'📖'}</span></div>`
+  return `<div class="book-card" data-id="${book.id}">
+    <div class="book-cover" data-open="${book.id}">
+      ${cover}
+      <div class="book-cover-overlay">▶</div>
+    </div>
+    <div class="book-meta">
+      <p class="book-title" title="${book.title}">${book.title}</p>
+      <p class="book-author">${book.author||''}</p>
+      <div class="progress-bar" style="margin-top:8px"><div class="progress-bar-fill" style="width:${book.progress||0}%"></div></div>
+      <p class="book-pct">${book.progress||0}%</p>
+    </div>
+    <div class="book-actions">
+      <button class="book-action-btn" data-cover="${book.id}" title="Alterar capa">📷</button>
+      <button class="book-action-btn del" data-del="${book.id}" data-title="${book.title}" title="Remover">✕</button>
+    </div>
+    <input type="file" accept="image/*" id="cover-input-${book.id}" style="display:none" />
+  </div>`
+}
+
+function bindLibrary() {
+  // Sign out
+  document.getElementById('btn-signout')?.addEventListener('click', signOut)
+
+  // Upgrade
+  document.getElementById('btn-upgrade')?.addEventListener('click', showPaywall)
+
+  // Dropzone
+  const dz   = document.getElementById('dropzone')
+  const fi   = document.getElementById('file-input')
+
+  dz.addEventListener('click', () => fi.click())
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag') })
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'))
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag')
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileSelected(file)
+  })
+  fi.addEventListener('change', e => {
+    const file = e.target.files?.[0]
+    if (file) handleFileSelected(file)
+  })
+
+  // Book open
+  document.querySelectorAll('[data-open]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id   = el.dataset.open
+      const book = S.books.find(b => b.id === id)
+      if (book) openBook(book)
+    })
+  })
+
+  // Cover change
+  document.querySelectorAll('[data-cover]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation()
+      const id = btn.dataset.cover
+      document.getElementById(`cover-input-${id}`)?.click()
+    })
+  })
+  document.querySelectorAll('[id^="cover-input-"]').forEach(input => {
+    input.addEventListener('change', async e => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      const id = input.id.replace('cover-input-','')
+      try {
+        const url = await uploadCover(id, file)
+        S.books = S.books.map(b => b.id === id ? { ...b, cover_url: url } : b)
+        render('library')
+        toast('Capa atualizada!')
+      } catch { toast('Erro ao atualizar capa.') }
+    })
+  })
+
+  // Delete
+  document.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation()
+      showDeleteModal(btn.dataset.del, btn.dataset.title)
+    })
+  })
+}
+
+function handleFileSelected(file) {
+  if (!file.name.endsWith('.pdf')) { toast('Selecione um arquivo PDF.'); return }
+  const isPro = S.plan === 'pro'
+  if (!isPro && S.books.length >= 1) { showPaywall(); return }
+  runImport(file)
+}
+
+// ── IMPORT ────────────────────────────────────────────
+const IMPORT_STEPS = [
+  'Lendo o PDF…','Buscando metadados do livro…','Detectando capítulos…',
+  'Limpando texto com IA…','Gerando perguntas com IA…','Salvando na sua biblioteca…',
+]
+
+function renderImporting() {
+  const step  = S.importStep
+  const error = S.importError
+  return `<div class="loading-overlay">
+    <img src="${LOGO_URL}" style="width:72px;filter:drop-shadow(0 0 14px rgba(222,173,42,.5))" />
+    <div class="loading-logo">StepBook</div>
+    ${error
+      ? `<p style="color:var(--red);font-size:.88rem;text-align:center;max-width:280px">${error}</p>
+         <button class="btn btn-ghost btn-sm" onclick="render('library')">← Voltar</button>`
+      : `<div class="spinner"></div>
+         <div class="loading-steps">
+           ${IMPORT_STEPS.map((s,i) => `<div style="color:${i===step?'var(--gold)':i<step?'var(--green)':'var(--text3)'}">${i<step?'✓ ':i===step?'⟳ ':'○ '}${s}</div>`).join('')}
+         </div>`
+    }
+  </div>`
+}
+
+async function runImport(file) {
+  S.importError = null
+  S.importStep  = 0
+  render('importing')
+
+  try {
+    // Step 0
+    const { pages, coverB64, totalPages } = await readPDF(file)
+
+    // Step 1
+    S.importStep = 1; updateImportStep()
+    const rawTitle = cleanTitle(file.name)
+    const meta = await fetchBookMeta(rawTitle)
+
+    // Step 2
+    S.importStep = 2; updateImportStep()
+    const chapters = detectChapters(pages)
+
+    // Step 3
+    S.importStep = 3; updateImportStep()
+    let cleanPages = pages
+    try {
+      const cleaned = await Promise.race([
+        cleanTextAI(pages, meta.title||rawTitle),
+        new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 30000))
+      ])
+      if (cleaned?.length) cleanPages = cleaned
+    } catch {}
+
+    // Step 4
+    S.importStep = 4; updateImportStep()
+    let questions = []
+    try {
+      const generated = await Promise.race([
+        makeQuestionsAI(cleanPages, meta.title||rawTitle, chapters),
+        new Promise((_,r) => setTimeout(() => r(new Error('timeout')), 45000))
+      ])
+      if (generated?.length) questions = generated
+    } catch {}
+    questions = injectAutoMCQ(questions, totalPages)
+
+    // Step 5
+    S.importStep = 5; updateImportStep()
+    const bookData = {
+      title:       meta.title || rawTitle,
+      author:      meta.author || 'Autor desconhecido',
+      cover_b64:   coverB64,
+      cover_url:   meta.coverUrl || null,
+      emoji:       guessEmoji(meta.title||rawTitle),
+      description: meta.description || '',
+      chapters,
+      questions,
+      reflections: [],
+      total_pages: totalPages,
+      progress:    0,
+      added_at:    new Date().toISOString(),
+    }
+
+    const saved = await saveBook(bookData)
+
+    // Save pages to DB
+    const pageRows = cleanPages.map(p => ({ book_id: saved.id, page_num: p.num, text: p.text }))
+    for (let i = 0; i < pageRows.length; i += 50) {
+      await sb.from('book_pages').upsert(pageRows.slice(i, i+50), { onConflict: 'book_id,page_num' })
+    }
+
+    // Upload PDF
+    try { await uploadPDF(saved.id, file) } catch {}
+
+    await loadBooks()
+    const finalBook = S.books.find(b => b.id === saved.id) || { ...bookData, id: saved.id, pages: cleanPages }
+    openBook(finalBook, cleanPages)
+  } catch (err) {
+    console.error(err)
+    S.importError = `Erro ao importar: ${err.message}`
+    render('importing')
+  }
+}
+
+function updateImportStep() {
+  const stepEls = document.querySelectorAll('.loading-steps div')
+  if (!stepEls.length) return
+  stepEls.forEach((el, i) => {
+    el.style.color = i === S.importStep ? 'var(--gold)' : i < S.importStep ? 'var(--green)' : 'var(--text3)'
+    const prefix = i < S.importStep ? '✓ ' : i === S.importStep ? '⟳ ' : '○ '
+    el.textContent = prefix + IMPORT_STEPS[i]
+  })
+}
+
+// ── OPEN BOOK ─────────────────────────────────────────
+async function openBook(book, preloadedPages) {
+  S.currentBook = book
+  S.questions   = book.questions || []
+  S.progress    = book.progress  || 0
+  S.chapOpen    = false
+  S.shareOpen   = false
+  S.quoteText   = ''
+  S.reflPrompt  = null
+
+  if (preloadedPages) {
+    S.pages = preloadedPages
+  } else {
+    S.pages = book.pages || []
+  }
+
+  render('reader')
+
+  if (!S.pages.length) {
+    await loadPages(book.id)
+    renderReaderPages()
+  }
+}
+
+// ── READER ────────────────────────────────────────────
+function renderReader() {
+  const book = S.currentBook
+  return `<div style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
+    <!-- TOP BAR -->
+    <header style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(3,8,16,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <img src="${LOGO_URL}" style="width:28px;height:28px;object-fit:contain" />
+        <button class="btn btn-ghost btn-sm" id="btn-home">← Biblioteca</button>
+        <button class="btn btn-ghost btn-sm" id="btn-chaps">Capítulos</button>
+      </div>
+      <span style="font-family:'Playfair Display',serif;font-size:.9rem;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;text-align:center">${book?.title||''}</span>
+      <button class="btn btn-ghost btn-sm" id="btn-share">Compartilhar</button>
+    </header>
+
+    <!-- PROGRESS -->
+    <div style="height:2px;background:var(--border);flex-shrink:0">
+      <div id="reader-progress-fill" style="height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .5s ease;width:${S.progress}%"></div>
+    </div>
+
+    <!-- BODY -->
+    <div id="reader-body" style="flex:1;overflow-y:auto;padding:0 0 80px">
+      <div id="reader-pages" style="max-width:680px;margin:0 auto;padding:32px 20px">
+        <div class="spinner" style="margin:60px auto"></div>
+      </div>
+    </div>
+
+    <!-- BOOKMARK -->
+    <button class="bookmark-btn" id="bookmark-btn">${S.progress}%</button>
+
+    <!-- QUOTE BUTTON -->
+    <button class="quote-btn" id="quote-btn" title="Selecione uma frase e crie um card">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" fill="#000" stroke="#000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <!-- PANELS -->
+    <div id="chap-panel"></div>
+    <div id="share-modal"></div>
+    <div id="refl-modal"></div>
+  </div>`
+}
+
+function bindReader() {
+  document.getElementById('btn-home').addEventListener('click', async () => {
+    await loadBooks()
+    render('library')
+  })
+  document.getElementById('btn-chaps').addEventListener('click', () => showChapPanel())
+  document.getElementById('btn-share').addEventListener('click', () => showShareModal('feed'))
+  document.getElementById('quote-btn').addEventListener('click', () => {
+    const sel = window.getSelection()?.toString().trim()
+    if (!sel || sel.length < 10) { toast('Selecione uma frase do texto primeiro.'); return }
+    S.quoteText = sel
+    showShareModal('stories')
+  })
+
+  // Scroll progress
+  const body = document.getElementById('reader-body')
+  let scrollTimer
+  body.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer)
+    scrollTimer = setTimeout(() => {
+      const pct = Math.round((body.scrollTop / (body.scrollHeight - body.clientHeight)) * 100)
+      const v   = Math.min(100, Math.max(0, pct || 0))
+      S.progress = v
+      document.getElementById('reader-progress-fill').style.width = v + '%'
+      document.getElementById('bookmark-btn').textContent = v + '%'
+      updateProgress(S.currentBook.id, v)
+
+      // Milestone reflections
+      if (v >= 60 && (S.currentBook.progress||0) < 60) {
+        const already = S.currentBook.reflections?.some(r => r._milestone === 60)
+        if (!already) { S.reflPrompt = 60; showReflPrompt() }
+      }
+      if (v >= 100 && (S.currentBook.progress||0) < 100) {
+        const already = S.currentBook.reflections?.some(r => r._milestone === 100)
+        if (!already) { S.reflPrompt = 100; showReflPrompt() }
+      }
+    }, 100)
+  })
+
+  renderReaderPages()
+}
+
+function renderReaderPages() {
+  const container = document.getElementById('reader-pages')
+  if (!container) return
+  if (!S.pages.length) {
+    container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh"><div class="spinner"></div><p style="color:var(--text2);margin-top:12px">Carregando páginas…</p></div>`
+    return
+  }
+
+  container.innerHTML = S.pages.map(page => {
+    const locked = isPageLocked(page.num)
+    const pageQs = S.questions.map((q,qi) => ({...q,_qi:qi})).filter(q => q.beforePage === page.num || q.beforePage === page.num-1)
+    return `<div id="page-${page.num}">
+      <div class="reader-page-label">— pág. ${page.num} —</div>
+      <div class="reader-page-text ${locked?'locked-blur':''}">${escHtml(page.text)}</div>
+      ${pageQs.map(q => renderQBlock(q)).join('')}
+    </div>`
+  }).join('')
+
+  // Bind Q blocks
+  bindQBlocks()
+}
+
+function renderQBlock(q) {
+  if (q.quality === 'good') {
+    return `<div class="q-block" data-qi="${q._qi}">
+      <div class="q-block-header"><div class="q-dot" style="background:var(--green)"></div><span class="q-badge" style="color:var(--green)">${q.type||'Quiz'}</span></div>
+      <p class="q-question">${escHtml(q.question)}</p>
+      <div class="q-status-good"><span>✓</span> Gate liberado · Próximo capítulo desbloqueado</div>
+    </div>`
+  }
+
+  if (q.qtype === 'mcq') {
+    const opts = (q.options||[]).map((opt,i) => {
+      let cls = 'mcq-option'
+      if (q.answered) {
+        if (i === q.correct) cls += ' correct'
+        else if (i === q.selectedOpt) cls += ' wrong'
+      } else if (i === q.selectedOpt) cls += ' selected'
+      return `<button class="${cls}" data-qi="${q._qi}" data-oi="${i}" ${q.answered?'disabled':''}>
+        <span class="opt-letter">${i===0?'A':'B'}</span>${escHtml(opt)}
+      </button>`
+    }).join('')
+
+    return `<div class="q-block" data-qi="${q._qi}">
+      <div class="q-block-header"><div class="q-dot"></div><span class="q-badge">Quiz</span></div>
+      <p class="q-question">${escHtml(q.question)}</p>
+      <div class="mcq-options">${opts}</div>
+      ${!q.answered ? `<button class="btn btn-gold btn-sm mcq-confirm" data-qi="${q._qi}" ${q.selectedOpt===undefined||q.selectedOpt===null?'disabled':''}>Confirmar resposta</button>` : ''}
+      ${q.answered && q.quality==='retry' ? `<div class="q-status-retry">Resposta incorreta. Revise o capítulo e tente novamente.</div>
+        <button class="btn btn-ghost btn-sm mcq-retry" data-qi="${q._qi}">Tentar novamente</button>` : ''}
+    </div>`
+  }
+
+  // Text answer
+  return `<div class="q-block" data-qi="${q._qi}">
+    <div class="q-block-header"><div class="q-dot"></div><span class="q-badge">Reflexão</span></div>
+    <p class="q-question">${escHtml(q.question)}</p>
+    ${q.answered && q.quality==='close' ? `<div class="q-status-close">💡 ${escHtml(q.feedback||'Boa tentativa! Aprofunde um pouco mais sua resposta.')}</div>` : ''}
+    ${q.answered && q.quality==='retry' ? `<div class="q-status-retry">⚠️ ${escHtml(q.feedback||'Resposta muito superficial. Revise e tente novamente.')}</div>` : ''}
+    <textarea class="input q-textarea" data-qi="${q._qi}" placeholder="Escreva sua reflexão aqui…" rows="4" style="margin-bottom:12px">${escHtml(q.answer||'')}</textarea>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn btn-gold btn-sm q-submit" data-qi="${q._qi}">Enviar resposta</button>
+      ${q.answered ? `<button class="btn btn-ghost btn-sm q-retry-text" data-qi="${q._qi}">Tentar novamente</button>` : ''}
+    </div>
+  </div>`
+}
+
+function bindQBlocks() {
+  // MCQ option select
+  document.querySelectorAll('.mcq-option:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qi = parseInt(btn.dataset.qi)
+      const oi = parseInt(btn.dataset.oi)
+      patchQuestion(qi, { selectedOpt: oi })
+    })
+  })
+
+  // MCQ confirm
+  document.querySelectorAll('.mcq-confirm').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qi = parseInt(btn.dataset.qi)
+      const q  = S.questions[qi]
+      const ok = q.selectedOpt === q.correct
+      patchQuestion(qi, { answered: true, quality: ok?'good':'retry', answer: q.options[q.selectedOpt] })
+      if (!ok) toast('Resposta incorreta. Tente novamente!')
+    })
+  })
+
+  // MCQ retry
+  document.querySelectorAll('.mcq-retry').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qi = parseInt(btn.dataset.qi)
+      patchQuestion(qi, { answered: false, selectedOpt: null, quality: null })
+    })
+  })
+
+  // Text submit
+  document.querySelectorAll('.q-submit').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const qi   = parseInt(btn.dataset.qi)
+      const q    = S.questions[qi]
+      const ta   = document.querySelector(`.q-textarea[data-qi="${qi}"]`)
+      const text = ta?.value?.trim() || ''
+      if (text.length < 20) { toast('Escreva pelo menos 20 caracteres.'); return }
+      btn.disabled = true
+      btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Avaliando…'
+      try {
+        const page   = S.pages.find(p => p.num === (q.beforePage||1))
+        const result = await evalAnswerAI(q.question, text, page?.text||'')
+        const score  = result?.score ?? 0
+        const quality = score >= 70 ? 'good' : score >= 40 ? 'close' : 'retry'
+        patchQuestion(qi, { answered: true, answer: text, quality, feedback: result?.feedback })
+      } catch { toast('Erro ao avaliar. Tente novamente.'); btn.disabled = false; btn.textContent = 'Enviar resposta' }
+    })
+  })
+
+  // Text retry
+  document.querySelectorAll('.q-retry-text').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qi = parseInt(btn.dataset.qi)
+      patchQuestion(qi, { answered: false, quality: null, feedback: null })
+    })
+  })
+}
+
+function patchQuestion(idx, patch) {
+  S.questions = S.questions.map((q,i) => i === idx ? {...q,...patch} : q)
+  updateQuestions(S.currentBook.id, S.questions)
+  // Re-render that q-block in place
+  const block = document.querySelector(`.q-block[data-qi="${idx}"]`)
+  if (block) {
+    const q = {...S.questions[idx], _qi: idx}
+    block.outerHTML = renderQBlock(q)
+    // Rebind all q blocks
+    bindQBlocks()
+  }
+}
+
+// ── CHAP PANEL ────────────────────────────────────────
+function showChapPanel() {
+  const panel = document.getElementById('chap-panel')
+  const chaps = S.currentBook?.chapters || []
+  panel.innerHTML = `<div class="chap-panel">
+    <div class="chap-backdrop" id="chap-back"></div>
+    <div class="chap-drawer">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+        <span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--text)">Capítulos</span>
+        <button class="btn btn-ghost btn-sm" id="chap-close">✕</button>
+      </div>
+      ${chaps.map((c,i) => {
+        const gate   = S.questions.find(q => q.beforePage >= c.pageNum-1 && q.beforePage <= c.pageNum+1)
+        const locked = c.locked && (!gate || gate.quality !== 'good')
+        return `<div class="chap-item ${locked?'locked':''}" data-page="${c.pageNum}">
+          <span class="chap-lock">${locked?'🔒':'📖'}</span>
+          <span class="chap-name">${escHtml(c.title)}</span>
+          <span class="chap-page">pág ${c.pageNum}</span>
+        </div>`
+      }).join('')}
+    </div>
+  </div>`
+
+  document.getElementById('chap-back').addEventListener('click', () => { panel.innerHTML = '' })
+  document.getElementById('chap-close').addEventListener('click', () => { panel.innerHTML = '' })
+  document.querySelectorAll('.chap-item').forEach(el => {
+    el.addEventListener('click', () => {
+      panel.innerHTML = ''
+      const pageNum = parseInt(el.dataset.page)
+      setTimeout(() => {
+        const target = document.getElementById(`page-${pageNum}`)
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    })
+  })
+}
+
+// ── SHARE MODAL ───────────────────────────────────────
+let shareCanvas = null
+
+function showShareModal(mode) {
+  S.shareMode = mode
+  const modal = document.getElementById('share-modal')
+  const book  = S.currentBook
+  const title = cleanTitle(book?.title||'')
+
+  modal.innerHTML = `<div class="overlay center" id="share-overlay">
+    <div class="modal" style="max-width:520px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <span style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text)">Compartilhar</span>
+        <button class="btn btn-ghost btn-sm" id="share-close">✕</button>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
+        <button class="btn btn-sm ${mode==='feed'?'btn-gold':'btn-ghost'}" id="tab-feed">📊 Card Feed</button>
+        <button class="btn btn-sm ${mode==='stories'?'btn-gold':'btn-ghost'}" id="tab-stories">💬 Card Stories</button>
+      </div>
+
+      <div id="share-content"></div>
+
+      <div class="share-grid" style="margin-top:8px">
+        <button class="btn btn-gold btn-sm" id="share-wa">💬 WhatsApp</button>
+        <button class="btn btn-ghost btn-sm" id="share-ig">📸 Instagram</button>
+        <button class="btn btn-ghost btn-sm" id="share-copy">📋 Copiar link</button>
+        <button class="btn btn-ghost btn-sm" id="share-dl">⬇ Baixar</button>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px" id="share-close2">Fechar</button>
+    </div>
+  </div>`
+
+  document.getElementById('share-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) modal.innerHTML = '' })
+  document.getElementById('share-close').addEventListener('click', () => modal.innerHTML = '')
+  document.getElementById('share-close2').addEventListener('click', () => modal.innerHTML = '')
+  document.getElementById('tab-feed').addEventListener('click', () => showShareModal('feed'))
+  document.getElementById('tab-stories').addEventListener('click', () => showShareModal('stories'))
+
+  renderShareContent(mode, title)
+
+  const SHARE_MSG = 'Baixe o StepBook.vercel.app'
+  document.getElementById('share-wa').addEventListener('click', async () => {
+    const file = await canvasToFile(shareCanvas, title)
+    if (file && navigator.canShare && navigator.canShare({ files:[file] })) {
+      try { await navigator.share({ files:[file], text: mode==='stories'?SHARE_MSG:`Estou lendo "${title}" — ${S.progress}% concluído!\n\nstepbook.vercel.app` }); return } catch(e) { if(e.name==='AbortError') return }
+    }
+    downloadCanvas(shareCanvas, title, mode)
+    setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(mode==='stories'?SHARE_MSG:`Estou lendo "${title}" — ${S.progress}% concluído!\n\nstepbook.vercel.app`)}`, '_blank'), 600)
+  })
+  document.getElementById('share-ig').addEventListener('click', async () => {
+    const file = await canvasToFile(shareCanvas, title)
+    if (file && navigator.canShare && navigator.canShare({ files:[file] })) {
+      try { await navigator.share({ files:[file] }); return } catch(e) { if(e.name==='AbortError') return }
+    }
+    downloadCanvas(shareCanvas, title, mode)
+    toast('Imagem salva! Abra Instagram → Story → galeria 📸')
+  })
+  document.getElementById('share-copy').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(SHARE_MSG).catch(() => {})
+    toast('Copiado!')
+  })
+  document.getElementById('share-dl').addEventListener('click', () => downloadCanvas(shareCanvas, title, mode))
+}
+
+function renderShareContent(mode, title) {
+  const c = document.getElementById('share-content')
+  if (mode === 'feed') {
+    c.innerHTML = `<canvas id="share-canvas-preview"></canvas>`
+    shareCanvas = document.getElementById('share-canvas-preview')
+    renderFeedCard(shareCanvas, title)
+  } else {
+    c.innerHTML = `
+      <div style="display:flex;justify-content:center;margin-bottom:12px;position:relative">
+        <canvas id="share-canvas-preview" style="height:340px;border-radius:8px;border:1px solid var(--border2);aspect-ratio:9/16"></canvas>
+        <div id="canvas-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(3,8,16,.7);border-radius:8px">
+          <div class="spinner"></div>
+          <p style="font-size:.75rem;color:var(--text2);margin-top:8px">Gerando card premium…</p>
+        </div>
+      </div>
+      ${S.quoteText ? `<p style="font-size:.82rem;color:var(--gold);font-style:italic;margin-bottom:8px">"${S.quoteText.slice(0,100)}${S.quoteText.length>100?'…':''}"</p>` : ''}
+      <div class="share-box" id="share-box" style="display:none">
+        <span class="share-msg">Baixe o StepBook.vercel.app</span>
+        <button class="btn btn-ghost btn-sm" id="copy-share-msg">Copiar</button>
+      </div>
+    `
+    shareCanvas = document.getElementById('share-canvas-preview')
+    const quoteText = S.quoteText || `${S.progress}% do livro lido com leitura ativa pelo StepBook.`
+    generatePremiumCard(shareCanvas, quoteText, title).then(() => {
+      document.getElementById('canvas-loader').style.display = 'none'
+      const sb = document.getElementById('share-box')
+      if (sb) sb.style.display = 'flex'
+    }).catch(() => {
+      const loader = document.getElementById('canvas-loader')
+      if (loader) loader.innerHTML = '<p style="color:var(--red);font-size:.8rem">Erro ao gerar card.</p>'
+    })
+    document.getElementById('copy-share-msg')?.addEventListener('click', async () => {
+      await navigator.clipboard.writeText('Baixe o StepBook.vercel.app').catch(() => {})
+      toast('Copiado!')
+    })
+  }
+}
+
+async function renderFeedCard(canvas, bookTitle) {
+  const ctx = canvas.getContext('2d')
+  const W = 1080, H = 1080
+  canvas.width = W; canvas.height = H
+
+  const bg = ctx.createLinearGradient(0,0,0,H)
+  bg.addColorStop(0,'#080c14'); bg.addColorStop(1,'#101820')
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H)
+
+  const barG = ctx.createLinearGradient(0,0,W,0)
+  barG.addColorStop(0,'transparent'); barG.addColorStop(.15,'#D4AF37')
+  barG.addColorStop(.85,'#D4AF37'); barG.addColorStop(1,'transparent')
+  ctx.fillStyle = barG; ctx.fillRect(0,0,W,5)
+
+  // Logo
+  const logo = await new Promise(r => { const img = new Image(); img.crossOrigin='anonymous'; img.onload=()=>r(img); img.onerror=()=>r(null); img.src=LOGO_URL })
+  if (logo) { ctx.save(); ctx.shadowColor='#D4AF37'; ctx.shadowBlur=15; ctx.drawImage(logo,W-125,18,50,50); ctx.restore() }
+
+  ctx.fillStyle='#D4AF37'; ctx.font='bold 20px sans-serif'
+  ctx.textAlign='right'; ctx.fillText('StepBook',W-135,52); ctx.textAlign='left'
+
+  // Cover
+  const book = S.currentBook
+  const coverSrc = book?.cover_url || (book?.cover_b64 ? `data:image/jpeg;base64,${book.cover_b64}` : null)
+  const CX=80,CY=180,CW=285,CH=430
+  if (coverSrc) {
+    await new Promise(res => {
+      const img=new Image(); img.crossOrigin='anonymous'
+      img.onload=()=>{ ctx.save(); ctx.shadowColor='rgba(0,0,0,.9)'; ctx.shadowBlur=40; ctx.shadowOffsetX=10; ctx.drawImage(img,CX,CY,CW,CH); ctx.restore(); ctx.strokeStyle='#D4AF37'; ctx.lineWidth=2; ctx.strokeRect(CX,CY,CW,CH); res() }
+      img.onerror=res; img.src=coverSrc
+    })
+  } else {
+    ctx.fillStyle='#0d1a2e'; ctx.fillRect(CX,CY,CW,CH)
+    ctx.strokeStyle='#D4AF37'; ctx.lineWidth=2; ctx.strokeRect(CX,CY,CW,CH)
+    ctx.fillStyle='#D4AF37'; ctx.font='70px serif'; ctx.textAlign='center'
+    ctx.fillText(book?.emoji||'📖',CX+CW/2,CY+CH/2+24); ctx.textAlign='left'
+  }
+
+  const RX=415; ctx.textAlign='left'
+  ctx.fillStyle='rgba(212,175,55,.15)'; roundRect(ctx,RX,190,180,32,16); ctx.fill()
+  ctx.fillStyle='#D4AF37'; ctx.font='bold 11px sans-serif'
+  ctx.textAlign='center'; ctx.fillText('STEPBOOK',RX+90,211); ctx.textAlign='left'
+
+  ctx.fillStyle='#FFF'; ctx.font='bold 34px "Georgia",serif'
+  wrapTextL(ctx,bookTitle,RX,280,585,44,3)
+  ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='400 21px sans-serif'
+  ctx.fillText((book?.author||'').slice(0,45),RX,395)
+
+  for(let i=0;i<5;i++){ctx.fillStyle=i<5?'#D4AF37':'rgba(255,255,255,.2)';ctx.font='26px serif';ctx.fillText('★',RX+i*32,440)}
+
+  ctx.fillStyle='rgba(255,255,255,.1)'; roundRect(ctx,RX,466,540,8,4); ctx.fill()
+  const pw=(S.progress/100)*540
+  const pG=ctx.createLinearGradient(RX,0,RX+pw,0)
+  pG.addColorStop(0,'#D4AF37'); pG.addColorStop(1,'#f5c842')
+  ctx.fillStyle=pG; roundRect(ctx,RX,466,pw,8,4); ctx.fill()
+  ctx.fillStyle='#D4AF37'; ctx.font='bold 15px sans-serif'
+  ctx.fillText(`${S.progress}% lido`,RX,500)
+
+  const dG=ctx.createLinearGradient(80,0,W-80,0)
+  dG.addColorStop(0,'transparent'); dG.addColorStop(.2,'rgba(212,175,55,.6)')
+  dG.addColorStop(.8,'rgba(212,175,55,.6)'); dG.addColorStop(1,'transparent')
+  ctx.strokeStyle=dG; ctx.lineWidth=1
+  ctx.beginPath(); ctx.moveTo(80,685); ctx.lineTo(W-80,685); ctx.stroke()
+
+  const reflText = book?.reflections?.filter(r=>r.answered)?.[0]?.answer || `${S.progress}% do livro lido com leitura ativa pelo StepBook.`
+  ctx.fillStyle='rgba(255,255,255,.78)'; ctx.font='italic 400 23px "Georgia",serif'
+  wrapTextL(ctx,`"${reflText.slice(0,170)}"`,80,740,W-160,34,4)
+
+  ctx.fillStyle='rgba(255,255,255,.28)'; ctx.font='400 15px sans-serif'
+  ctx.textAlign='right'; ctx.fillText('stepbook.vercel.app',W-80,H-40)
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r)
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r)
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r)
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath()
+}
+function wrapTextL(ctx,text,x,y,mw,lh,ml=99){
+  const ws=text.split(' '); let l='',cy=y,n=0
+  for(const w of ws){const t=l+w+' ';if(ctx.measureText(t).width>mw&&l){ctx.fillText(l.trim(),x,cy);l=w+' ';cy+=lh;n++;if(n>=ml){ctx.fillText('…',x,cy);return}}else l=t}
+  if(l)ctx.fillText(l.trim(),x,cy)
+}
+
+async function canvasToFile(canvas, title) {
+  if (!canvas) return null
+  return new Promise(r => canvas.toBlob(blob => r(blob ? new File([blob], `stepbook-${title.slice(0,20)}.png`, { type:'image/png' }) : null), 'image/png', 1.0))
+}
+function downloadCanvas(canvas, title, mode) {
+  if (!canvas) return
+  const a = document.createElement('a')
+  a.href = canvas.toDataURL('image/png',1.0)
+  a.download = `stepbook-${mode}-${title.replace(/\s+/g,'-').slice(0,30)}.png`
+  a.click(); toast('Imagem salva! ✅')
+}
+
+// ── REFLECTION PROMPT ─────────────────────────────────
+function showReflPrompt() {
+  const modal = document.getElementById('refl-modal')
+  if (!modal) return
+  modal.innerHTML = `<div class="overlay center" id="refl-overlay">
+    <div class="modal" style="max-width:420px">
+      <h3 class="modal-title">Você atingiu ${S.reflPrompt}% do livro!</h3>
+      <p class="modal-sub">Registre uma reflexão sobre o que leu até aqui.</p>
+      <textarea class="input" id="refl-text" rows="4" placeholder="O que mais te marcou até aqui?"></textarea>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn btn-ghost btn-sm" id="refl-skip">Pular</button>
+        <button class="btn btn-gold btn-sm" id="refl-save">Salvar Reflexão ✨</button>
+      </div>
+    </div>
+  </div>`
+
+  document.getElementById('refl-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) modal.innerHTML='' })
+  document.getElementById('refl-skip').addEventListener('click', () => modal.innerHTML = '')
+  document.getElementById('refl-save').addEventListener('click', async () => {
+    const text = document.getElementById('refl-text').value.trim()
+    if (!text) { toast('Escreva algo primeiro.'); return }
+    const ref = {
+      type:'text', answer:text, question:`Reflexão aos ${S.reflPrompt}%`,
+      answered:true, quality:'good', _milestone:S.reflPrompt, addedAt:Date.now(),
+    }
+    await saveReflection(S.currentBook.id, ref)
+    modal.innerHTML = ''
+    toast('Reflexão salva! ✨')
+  })
+}
+
+// ── PAYWALL MODAL ─────────────────────────────────────
+function showPaywall() {
+  const el = document.getElementById('paywall-modal') || document.body
+  el.innerHTML = `<div class="overlay center" id="pw-overlay">
+    <div class="modal" style="max-width:420px">
+      <div style="text-align:center;margin-bottom:24px">
+        <span style="font-size:2.5rem">⭐</span>
+        <h3 class="modal-title" style="margin-top:10px">StepBook Pro</h3>
+        <p class="modal-sub">Desbloqueie livros ilimitados por R$ 6,99/mês</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        ${[['📚','Livros ilimitados'],['🤖','IA para avaliação de respostas'],['📊','Cards de compartilhamento'],['🔄','Sincronização entre dispositivos']].map(([icon,label])=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--gold-dim);border:1px solid var(--border);border-radius:var(--radius)"><span>${icon}</span><span style="font-size:.88rem;color:var(--text2)">${label}</span></div>`).join('')}
+      </div>
+      <div class="divider"></div>
+      <p style="font-size:.80rem;color:var(--text2);margin-bottom:10px">Tem uma chave de ativação?</p>
+      <div style="display:flex;gap:8px">
+        <input class="input" id="pw-key" placeholder="STEP-MAR26-XXXX" style="letter-spacing:.08em;font-family:monospace;font-size:.85rem" />
+        <button class="btn btn-gold btn-sm" id="pw-activate">Ativar</button>
+      </div>
+      <div class="divider"></div>
+      <a href="https://wa.me/5521999999999?text=Quero+o+Plano+Pro+StepBook" target="_blank" class="btn btn-ghost" style="width:100%;justify-content:center">💬 Contratar via WhatsApp</a>
+      <button class="btn btn-ghost btn-sm" id="pw-close" style="width:100%;margin-top:8px">Fechar</button>
+    </div>
+  </div>`
+
+  document.getElementById('pw-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) el.innerHTML='' })
+  document.getElementById('pw-close').addEventListener('click', () => el.innerHTML = '')
+  document.getElementById('pw-key').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('pw-activate').click() })
+  document.getElementById('pw-activate').addEventListener('click', async () => {
+    const key = document.getElementById('pw-key').value
+    const btn = document.getElementById('pw-activate')
+    btn.disabled = true; btn.textContent = '…'
+    const { ok, msg } = await activateKey(key)
+    toast(msg)
+    if (ok) { el.innerHTML = ''; render('library') }
+    else { btn.disabled = false; btn.textContent = 'Ativar' }
+  })
+}
+
+// ── DELETE MODAL ──────────────────────────────────────
+function showDeleteModal(bookId, bookTitle) {
+  const el = document.getElementById('delete-modal') || document.body
+  el.innerHTML = `<div class="overlay center" id="del-overlay">
+    <div class="modal" style="max-width:380px">
+      <h3 class="modal-title">Remover livro?</h3>
+      <p class="modal-sub">Isso removerá <strong>"${escHtml(bookTitle)}"</strong> da sua biblioteca. Esta ação não pode ser desfeita.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="del-cancel">Cancelar</button>
+        <button class="btn btn-danger" id="del-confirm">Remover</button>
+      </div>
+    </div>
+  </div>`
+
+  document.getElementById('del-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) el.innerHTML='' })
+  document.getElementById('del-cancel').addEventListener('click', () => el.innerHTML = '')
+  document.getElementById('del-confirm').addEventListener('click', async () => {
+    el.innerHTML = ''
+    await deleteBook(bookId)
+    toast('Livro removido.')
+    render('library')
+  })
+}
+
+// ── UTILS ─────────────────────────────────────────────
+function escHtml(s) {
+  if (!s) return ''
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  render('loading')
+  await initAuth()
+  if (S.user) {
+    await loadBooks()
+    render('library')
+  }
+})
+</script>
+</body>
+</html>

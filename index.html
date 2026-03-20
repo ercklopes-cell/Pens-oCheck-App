@@ -1,2072 +1,1220 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-<title>Pensão Check</title>
-<!-- PWA meta -->
-<meta name="theme-color" content="#012B40"/>
-<meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Pensão Check"/>
-<meta name="description" content="Controle seus pagamentos de pensão alimentícia"/>
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23012B40'/><text y='.9em' font-size='72' x='50%' text-anchor='middle'>⚖️</text></svg>"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- NOVO — Google Identity Services (login com Google) -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StepBook — Leitura Ativa com IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --green:   #1A7A3E;
-  --green-l: #F0FDF4;
-  --green-b: #16A34A;
-  --navy:    #012B40;
-  --navy-l:  #0a3d57;
-  --orange:  #D97706;
-  --red:     #DC2626;
-  --font:    "Plus Jakarta Sans", sans-serif;
-  --g50:  #F9FAFB; --g100: #F3F4F6; --g200: #E5E7EB;
-  --g300: #D1D5DB; --g400: #9CA3AF; --g500: #6B7280;
-  --g700: #374151; --g900: #111827;
-  --radius: 12px; --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+  --bg: #040916;
+  --bg2: #071228;
+  --gold: #D4AF37;
+  --gold-light: #f0d060;
+  --gold-dim: rgba(212,175,55,0.12);
+  --gold-mid: rgba(212,175,55,0.35);
+  --white: #F4EFEA;
+  --muted: rgba(244,239,234,0.55);
+  --gray: #4a4750;
+  --glass: rgba(255,255,255,0.025);
+  --border: rgba(212,175,55,0.15);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:var(--font);background:var(--g50);color:var(--g900);font-size:14px;line-height:1.5}
 
-/* ── UTILS ── */
-.hidden{display:none!important}
-.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap}
-.btn-g{background:var(--green);color:#fff}.btn-g:hover{background:#155d31}
-.btn-n{background:var(--navy);color:#fff}.btn-n:hover{background:var(--navy-l)}
-.btn-r{background:var(--red);color:#fff}.btn-r:hover{background:#b91c1c}
-.btn-outline{background:#fff;color:var(--g700);border:1.5px solid var(--g300)}.btn-outline:hover{border-color:var(--g400);background:var(--g50)}
-.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
-.badge-pago{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#dcfce7;color:#15803d}
-.badge-pendente{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#fef3c7;color:#b45309}
-.badge-free{background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.badge-pro{background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:60px 20px;text-align:center;color:var(--g400)}
-.empty-icon{font-size:40px}
-.empty p{font-size:14px;color:var(--g500)}
-.toast{position:fixed;bottom:24px;right:24px;background:var(--g900);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:1000;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
-.toast.show{transform:translateY(0);opacity:1}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none}
-.overlay.show{display:block}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+img { max-width:100%; display:block; }
+html { scroll-behavior:smooth; overflow-x:hidden; }
 
-/* ── SCREEN ── */
-.screen{display:none;width:100%;min-height:100vh}
-.screen.active{display:flex}
-
-/* ── LOGIN ── */
-#screen-login{align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,#024a6e 100%);padding:20px}
-.login-box{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
-.logo-icon{width:44px;height:44px;background:var(--navy);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;flex-shrink:0}
-.logo-text{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
-.logo-sub{font-size:11px;color:var(--g400);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
-.login-tabs{display:flex;background:var(--g100);border-radius:10px;padding:4px;margin-bottom:28px;gap:4px}
-.ltab{flex:1;text-align:center;padding:9px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--g500);transition:all .2s}
-.ltab.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.form-group{margin-bottom:16px}
-.form-group label{display:block;font-size:12px;font-weight:600;color:var(--g700);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:9px;font-family:var(--font);font-size:14px;color:var(--g900);outline:none;transition:border-color .2s;background:#fff}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--green)}
-.frm-btn{width:100%;padding:13px;border-radius:10px;background:var(--navy);color:#fff;font-family:var(--font);font-size:15px;font-weight:700;border:none;cursor:pointer;transition:background .2s;margin-top:8px}
-.frm-btn:hover{background:var(--navy-l)}
-.frm-btn:disabled{background:var(--g300);cursor:not-allowed}
-.login-hint{font-size:12px;color:var(--g400);text-align:center;margin-top:16px}
-.link-btn{background:none;border:none;color:var(--green);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;padding:0}
-.tab-content{display:none}.tab-content.active{display:block}
-/* NOVO — Google OAuth button */
-.btn-google{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px;border-radius:10px;background:#fff;color:#1f1f1f;font-family:var(--font);font-size:15px;font-weight:600;border:1.5px solid var(--g200);cursor:pointer;transition:all .2s;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.btn-google:hover{background:#f8f8f8;border-color:var(--g300);box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.btn-google svg{flex-shrink:0}
-.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--g400);font-size:12px}
-.login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--g200)}
-/* NOVO — loading spinner */
-.spinner-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px 20px}
-.spinner{width:36px;height:36px;border:3px solid var(--g200);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-/* NOVO — upload progress indicator */
-.upload-progress{display:none;align-items:center;gap:10px;padding:12px 14px;background:var(--green-l);border:1.5px solid var(--green-b);border-radius:9px;font-size:13px;font-weight:600;color:var(--green);margin-top:10px}
-.upload-progress.show{display:flex}
-.upload-progress .up-spinner{width:18px;height:18px;border:2px solid var(--green-b);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
-
-/* ── APP LAYOUT ── */
-#screen-app{flex-direction:row;min-height:100vh}
-.sidebar{width:258px;min-width:258px;background:var(--navy);min-height:100vh;position:fixed;left:0;top:0;z-index:50;display:flex;flex-direction:column;transition:transform .3s}
-.sidebar.closed{transform:translateX(-100%)}
-.sb-logo{display:flex;align-items:center;gap:10px;padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
-.sb-logo-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
-.sb-logo-text{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px}
-.sb-logo-sub{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px}
-.sb-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
-.sb-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 4px;margin-top:8px}
-.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;font-weight:500;transition:all .2s;border:none;background:none;width:100%;text-align:left;font-family:var(--font)}
-.sb-item:hover{background:rgba(255,255,255,.08);color:#fff}
-.sb-item.active{background:var(--green);color:#fff;font-weight:600}
-.sb-item .si{font-size:16px;width:20px;text-align:center}
-.sb-footer{padding:16px;border-top:1px solid rgba(255,255,255,.08)}
-.sb-user{display:flex;align-items:center;gap:10px}
-.sb-avatar{width:36px;height:36px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0}
-.sb-user-name{font-size:13px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sb-user-email{font-size:11px;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sb-logout{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:16px;padding:4px;transition:color .2s;flex-shrink:0}
-.sb-logout:hover{color:#fff}
-
-.app-main{margin-left:258px;flex:1;min-height:100vh;display:flex;flex-direction:column}
-.app-hdr{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;padding:0 26px;height:60px;gap:16px}
-.hdr-left{display:flex;align-items:center;gap:14px}
-.hdr-hamburger{display:none;background:none;border:none;cursor:pointer;font-size:20px;color:var(--g700);padding:4px}
-#view-title{font-size:18px;font-weight:700;color:var(--g900)}
-.hdr-right{display:flex;align-items:center;gap:10px}
-.app-cnt{padding:26px;flex:1}
-.vw{width:100%}
-
-/* ── DASHBOARD ── */
-.dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
-.dash-card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border-left:4px solid transparent}
-.dash-card.green{border-left-color:var(--green)}
-.dash-card.navy{border-left-color:var(--navy)}
-.dash-card.orange{border-left-color:var(--orange)}
-.dash-card.gray{border-left-color:var(--g300)}
-.dc-label{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.dc-val{font-size:24px;font-weight:800;color:var(--g900);letter-spacing:-.5px}
-.dc-sub{font-size:12px;color:var(--g400);margin-top:4px}
-.section-title{font-size:15px;font-weight:700;color:var(--g900);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.benef-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px}
-.benef-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}
-.benef-avatar{width:42px;height:42px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
-.benef-name{font-size:14px;font-weight:600;color:var(--g900)}
-.benef-info{font-size:12px;color:var(--g400)}
-.last-pags{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow)}
-.lp-row{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g100)}
-.lp-row:last-child{border-bottom:none}
-.lp-ref{font-size:13px;font-weight:600;color:var(--g900)}
-.lp-date{font-size:12px;color:var(--g400)}
-.lp-val{font-size:14px;font-weight:700;color:var(--navy)}
-.alert-banner{background:#fef3c7;border:1.5px solid #fcd34d;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e}
-
-/* ── HISTORICO ── */
-.hist-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-.hist-toolbar select{padding:9px 12px;border:1.5px solid var(--g200);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--g700);background:#fff;outline:none;cursor:pointer}
-.hist-toolbar select:focus{border-color:var(--green)}
-.hist-spacer{flex:1}
-.hist-summary{display:flex;align-items:center;gap:6px;padding:10px 0;font-size:13px;color:var(--g500);border-bottom:1px solid var(--g100);margin-bottom:2px;flex-wrap:wrap}
-.hist-summary strong{color:var(--g900);font-weight:700}
-.hist-total{margin-left:auto;font-size:14px;font-weight:700;color:var(--navy)}
-.table-wrap{overflow-x:auto;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow)}
-table{width:100%;border-collapse:collapse;font-size:13px}
-thead tr{background:var(--g50);border-bottom:2px solid var(--g200)}
-th{padding:11px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
-td{padding:12px 14px;border-bottom:1px solid var(--g100);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--g50)}
-.comp-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--g200);background:#fff;color:var(--g700);transition:all .15s;font-family:var(--font)}
-.comp-btn:hover{border-color:var(--navy);color:var(--navy)}
-.comp-btns{display:flex;gap:4px}
-.td-actions{display:flex;gap:4px;justify-content:flex-end}
-.icon-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:4px 6px;border-radius:6px;transition:background .15s}
-.icon-btn:hover{background:var(--g100)}
-
-/* ── ADICIONAR ── */
-.form-section{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px}
-.form-section-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:18px;display:flex;align-items:center;gap:8px}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
-.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.upload-area{border:2px dashed var(--g300);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--g50)}
-.upload-area:hover{border-color:var(--green);background:var(--green-l)}
-.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.upload-icon{font-size:32px;margin-bottom:8px}
-.upload-text{font-size:13px;color:var(--g500);font-weight:500}
-.upload-sub{font-size:11px;color:var(--g400);margin-top:4px}
-.preview-area{border-radius:10px;overflow:hidden;position:relative;background:var(--g100);min-height:120px;display:flex;align-items:center;justify-content:center}
-.preview-area img{max-width:100%;max-height:240px;border-radius:8px;display:block}
-.preview-pdf{display:flex;align-items:center;justify-content:center;gap:10px;padding:20px;font-size:14px;font-weight:600;color:var(--navy)}
-.preview-clear{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:background .2s}
-.preview-clear:hover{background:rgba(0,0,0,.7)}
-.benef-checks-wrap{display:flex;flex-direction:column;gap:10px}
-.benef-checks-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.benef-checks-divider{display:flex;align-items:center;gap:8px;margin:2px 0}
-.benef-checks-divider::before,.benef-checks-divider::after{content:"";flex:1;height:1px;background:var(--g200)}
-.benef-checks-divider span{font-size:10px;color:var(--g400);font-weight:600;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
-.benef-check{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--g200);border-radius:8px;cursor:pointer;transition:all .2s;font-size:13px;font-weight:500;user-select:none}
-.benef-check:has(input:checked){background:var(--green-l);border-color:var(--green-b);color:var(--green)}
-.benef-check input{accent-color:var(--green);cursor:pointer}
-.benef-check-todos{padding:8px 16px;font-weight:700;border-color:var(--navy);color:var(--navy)}
-.benef-check-todos:has(input:checked){background:#e8f0f5;border-color:var(--navy);color:var(--navy)}
-.benef-check-todos input{accent-color:var(--navy)}
-/* Config benef panel */
-.benef-add-panel{margin-top:16px;background:#fff;border:1.5px solid var(--green-b);border-left:4px solid var(--green);border-radius:10px;padding:18px 20px;animation:slideDown .2s ease}
-@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-.benef-list-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--g100)}
-.benef-list-item:last-child{border-bottom:none}
-.benef-list-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--green-l);color:var(--green);margin-top:3px}
-.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
-
-/* ── COFRE ── */
-.cofre-form{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:24px}
-.cofre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
-.cofre-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:transform .2s}
-.cofre-card:hover{transform:translateY(-2px)}
-.cofre-thumb{height:120px;background:var(--g100);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden}
-.cofre-thumb img{width:100%;height:100%;object-fit:cover}
-.cofre-info{padding:12px}
-.cofre-cat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g400);margin-bottom:4px}
-.cofre-desc{font-size:13px;font-weight:600;color:var(--g900);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cofre-actions{display:flex;gap:6px}
-
-/* ── RELATORIOS ── */
-.rel-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
-.rel-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;text-align:center}
-.rel-card .rc-val{font-size:28px;font-weight:800;color:var(--navy);letter-spacing:-.5px;margin:8px 0}
-.rel-card .rc-label{font-size:12px;color:var(--g400);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.rel-actions{display:flex;gap:12px;flex-wrap:wrap}
-
-/* ── CONFIG ── */
-.config-section{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px}
-.config-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--g100);display:flex;align-items:center;gap:8px}
-.benef-list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--g100)}
-.benef-list-item:last-child{border-bottom:none}
-.plan-info{display:flex;align-items:center;gap:16px;padding:16px;background:var(--g50);border-radius:10px;margin-bottom:16px}
-.plan-badge-big{font-size:14px;font-weight:700;padding:8px 20px;border-radius:30px}
-.license-input-wrap{display:flex;gap:8px}
-.license-input-wrap input{flex:1;font-family:"Courier New",monospace;letter-spacing:2px;text-transform:uppercase;font-size:15px}
-.toggle-wrap{display:flex;align-items:center;gap:12px;padding:12px 0}
-.toggle{position:relative;width:48px;height:26px;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;inset:0;background:var(--g300);border-radius:26px;cursor:pointer;transition:.3s}
-.toggle-slider::before{content:"";position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
-.toggle input:checked+.toggle-slider{background:var(--green)}
-.toggle input:checked+.toggle-slider::before{transform:translateX(22px)}
-/* AJUSTADO — suporte dentro da nav, estilo chamativo */
-.sb-suporte-wrap{display:flex;flex-direction:column;gap:6px;margin-top:4px;padding:0 0 4px}
-.sb-suporte-link{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:700;color:#fff;transition:all .18s;border:none;cursor:pointer}
-.sb-suporte-link.verde{background:#16A34A}.sb-suporte-link.verde:hover{background:#15803d;transform:translateX(2px)}
-.sb-suporte-link.navy{background:#012B40}.sb-suporte-link.navy:hover{background:#024a6e;transform:translateX(2px)}
-.sb-suporte-link .si{font-size:16px;width:22px;text-align:center;flex-shrink:0;margin-top:1px}
-.sb-suporte-link .sl-text span{display:block;font-size:12px;font-weight:700;color:#fff}
-.sb-suporte-link .sl-text small{display:block;font-size:10px;font-weight:400;color:rgba(255,255,255,.65);margin-top:1px}
-/* NOVO — alerta topo */
-#alerta-topo{margin-bottom:20px;border-radius:12px;padding:14px 18px;font-size:13px;font-weight:600;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:all .3s;display:none}
-#alerta-topo.show{display:flex}
-#alerta-topo .at-icon{font-size:20px;flex-shrink:0}
-#alerta-topo .at-msg{flex:1;line-height:1.4}
-#alerta-topo.verde{background:#DCFCE7;border:1.5px solid #86EFAC;color:#166534}
-#alerta-topo.amarelo{background:#FEF9C3;border:1.5px solid #FDE047;color:#854D0E}
-#alerta-topo.vermelho{background:#FEF2F2;border:1.5px solid #FCA5A5;color:#991B1B}
-/* NOVO — painel pendentes */
-#painel-pendentes{margin-bottom:24px}
-.pendentes-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-left:4px solid var(--orange)}
-.pendentes-card.ok{border-left-color:var(--green)}
-.pc-left{display:flex;align-items:center;gap:12px}
-.pc-icon{font-size:24px}
-.pc-title{font-size:14px;font-weight:700;color:var(--g900)}
-.pc-sub{font-size:12px;color:var(--g500);margin-top:2px}
-/* NOVO — zerar dados */
-.danger-zone{border:1.5px solid #FCA5A5;border-radius:var(--radius);padding:18px 20px;background:#FFF5F5}
-.danger-zone-title{font-size:13px;font-weight:700;color:#991B1B;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.danger-zone p{font-size:12px;color:#B91C1C;margin-bottom:14px;line-height:1.5}
-
-/* ── MODAL ── */
-.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
-.modal.show{display:flex}
-.modal-box{background:#fff;border-radius:16px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--g100)}
-.modal-hdr h3{font-size:15px;font-weight:700;color:var(--g900)}
-.modal-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--g400);padding:2px;line-height:1;transition:color .2s}
-.modal-close:hover{color:var(--g900)}
-.modal-body{padding:22px;max-height:70vh;overflow-y:auto}
-.modal-body img{max-width:100%;border-radius:8px}
-
-/* ── PWA / MOBILE ── */
-/* Safe area support for notched phones */
-:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
-
-/* Bottom nav — hidden on desktop */
-#bottom-nav {
-  display: none;
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
-  background: var(--navy);
-  border-top: 1px solid rgba(255,255,255,.1);
-  padding: 6px 4px calc(6px + var(--safe-bottom));
-  flex-direction: row; align-items: stretch; justify-content: space-around;
-  box-shadow: 0 -4px 20px rgba(0,0,0,.18);
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  width:100%;
 }
-.bn-item {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; flex: 1; background: none; border: none; cursor: pointer;
-  padding: 6px 2px; border-radius: 10px; transition: background .15s;
-  color: rgba(255,255,255,.5); min-height: 52px; -webkit-tap-highlight-color: transparent;
-}
-.bn-item:active { background: rgba(255,255,255,.06); }
-.bn-item.active { color: #fff; }
-.bn-item.active .bn-icon { transform: scale(1.12); }
-.bn-icon { font-size: 20px; line-height: 1; transition: transform .2s; display: block; }
-.bn-label { font-size: 10px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
-.bn-add {
-  width: 40px; height: 40px; background: var(--green); border-radius: 50%;
-  display: flex !important; align-items: center; justify-content: center;
-  font-size: 22px; font-style: normal; line-height: 1; color: #fff;
-  box-shadow: 0 2px 10px rgba(26,122,62,.5); margin-bottom: 2px;
-}
-.bn-item:has(.bn-add) { gap: 0; }
-.bn-item:has(.bn-add) .bn-label { font-size: 10px; margin-top: 2px; }
 
-@media (max-width: 768px) {
-  /* Hide sidebar, show bottom nav */
-  .sidebar { transform: translateX(-100%); z-index: 70; }
-  .sidebar.open { transform: translateX(0); }
-  .app-main { margin-left: 0; }
-  .hdr-hamburger { display: flex; }
-  #bottom-nav { display: flex; }
-  /* Add bottom padding so content doesn't hide behind nav */
-  .app-cnt { padding: 16px 16px calc(80px + var(--safe-bottom)); }
-  /* Layout fixes */
-  .dash-cards { grid-template-columns: 1fr 1fr; }
-  .rel-cards { grid-template-columns: 1fr; }
-  .form-grid-2 { grid-template-columns: 1fr; }
-  .hist-total { margin-left: 0; }
-  .hist-summary { gap: 4px; }
-  table { min-width: 640px; }
-  .benef-grid { grid-template-columns: 1fr; }
-  .rel-actions { flex-direction: column; }
-  /* Header safe area */
-  .app-hdr { padding: 0 16px; }
-  /* Bigger touch targets */
-  .btn { min-height: 42px; }
-  .sb-item, .bn-item { min-height: 44px; }
-  /* Modal full-screen on mobile */
-  .modal { align-items: flex-end; padding: 0; }
-  .modal-box { border-radius: 20px 20px 0 0; max-height: 90vh; width: 100%; }
-  /* Toast above bottom nav */
-  .toast { bottom: calc(80px + var(--safe-bottom) + 8px); right: 16px; left: 16px; text-align: center; }
+/* NOISE */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:0; opacity:0.7;
 }
-@media (max-width: 480px) {
-  .app-cnt { padding: 14px 14px calc(80px + var(--safe-bottom)); }
-  .dash-cards { grid-template-columns: 1fr 1fr; }
-  .login-box { padding: 28px 22px; }
-  .hist-toolbar { gap: 6px; }
-  .form-section { padding: 18px 16px; }
+
+/* GLOW BLOBS */
+.blob {
+  position:absolute;
+  border-radius:50%;
+  filter:blur(80px);
+  pointer-events:none;
+  z-index:0;
 }
+
+/* NAV */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:200;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.2rem 6vw;
+  background:rgba(6,8,16,0.85);
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid rgba(212,175,55,0.07);
+}
+.nav-logo { text-decoration:none; display:flex; align-items:center; padding:0.15rem 0; transition:filter .2s; }
+.nav-logo:hover { filter: drop-shadow(0 0 10px rgba(212,175,55,0.6)); }
+.nav-logo span { display:none; }
+.nav-right { display:flex; align-items:center; gap:1.4rem; }
+.nav-link {
+  font-size:0.78rem; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--muted); text-decoration:none; transition:color .2s;
+}
+.nav-link:hover { color:var(--white); }
+.nav-cta {
+  font-size:0.75rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--bg); background:var(--gold); padding:0.55rem 1.4rem;
+  text-decoration:none; transition:background .2s, box-shadow .2s;
+}
+.nav-cta:hover { background:var(--gold-light); box-shadow:0 4px 20px rgba(212,175,55,0.4); }
+
+/* ─── HERO ─── */
+.hero {
+  position:relative; min-height:100svh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:7rem 6vw 4rem; overflow:hidden;
+}
+.hero .blob-1 {
+  width:600px; height:600px;
+  background:radial-gradient(circle,rgba(212,175,55,0.08),transparent 70%);
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  animation:breathe 7s ease-in-out infinite;
+}
+.hero .blob-2 {
+  width:300px; height:300px;
+  background:radial-gradient(circle,rgba(60,80,180,0.07),transparent 70%);
+  top:20%; right:15%;
+}
+@keyframes breathe { 0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.18)} }
+
+.hero-badge {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  font-size:0.68rem; font-weight:500; letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--gold); border:1px solid var(--gold-mid); padding:0.45rem 1.1rem;
+  margin-bottom:1.2rem; background:var(--gold-dim);
+  opacity:0; animation:fadeUp .7s .1s forwards;
+}
+.hero-badge::before { content:'◆'; font-size:0.5rem; }
+
+.hero h1 {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.8rem,3.5vw,3rem);
+  font-weight:700; line-height:1.12; letter-spacing:-0.01em; max-width:700px;
+  opacity:0; animation:fadeUp .7s .3s forwards; position:relative;
+}
+.hero h1 em { color:var(--gold); font-style:italic; display:inline; }
+
+.hero-sub {
+  margin-top:1rem; max-width:520px;
+  font-size:clamp(0.8rem,1.2vw,0.95rem); line-height:1.7; color:var(--muted);
+  opacity:0; animation:fadeUp .7s .5s forwards; position:relative;
+}
+
+.hero-actions {
+  display:flex; align-items:center; gap:1rem; flex-wrap:wrap; justify-content:center;
+  margin-top:1.8rem; opacity:0; animation:fadeUp .7s .7s forwards; position:relative;
+}
+
+.btn-primary {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  padding:1rem 2.6rem; background:var(--gold); color:var(--bg);
+  font-size:0.85rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  text-decoration:none; border:none; cursor:pointer; position:relative; overflow:hidden;
+  transition:transform .2s, box-shadow .3s;
+}
+.btn-primary::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
+  transform:translateX(-100%); transition:transform .5s;
+}
+.btn-primary:hover::after { transform:translateX(100%); }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(212,175,55,0.45); }
+
+.btn-ghost {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  padding:0.95rem 2rem; border:1px solid var(--border);
+  color:var(--muted); font-size:0.82rem; font-weight:500; letter-spacing:0.08em;
+  text-decoration:none; transition:border-color .2s, color .2s;
+}
+.btn-ghost:hover { border-color:var(--gold-mid); color:var(--white); }
+
+.hero-trust {
+  display:flex; align-items:center; gap:1.6rem; margin-top:1.4rem; flex-wrap:wrap; justify-content:center;
+  opacity:0; animation:fadeUp .7s .9s forwards; position:relative;
+}
+.trust-item { display:flex; flex-direction:column; align-items:center; }
+.trust-num {
+  font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; color:var(--gold);
+}
+.trust-label { font-size:0.65rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gray); margin-top:2px; }
+.trust-sep { width:1px; height:36px; background:var(--border); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+
+/* ─── HOW IT WORKS ─── */
+.how {
+  position:relative; padding:3rem 6vw;
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+}
+.section-label {
+  display:inline-flex; align-items:center; gap:0.7rem;
+  font-size:0.68rem; font-weight:500; letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:0.6rem;
+}
+.section-label::before, .section-label::after {
+  content:''; display:block; width:18px; height:1px; background:var(--gold-mid);
+}
+.section-h {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.4rem,2.8vw,2.2rem); font-weight:700; line-height:1.25; word-break:break-word;
+}
+.section-h em { color:var(--gold); font-style:italic; }
+
+.how-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; align-items:start; margin-top:2.5rem;
+}
+
+/* Phone mockup */
+.phone-wrap {
+  position:relative; display:flex; justify-content:center; align-items:center;
+}
+.phone-glow {
+  position:absolute; width:320px; height:320px; border-radius:50%;
+  background:radial-gradient(circle,rgba(212,175,55,0.12),transparent 70%);
+  animation:breathe 5s ease-in-out infinite;
+}
+.phone-frame {
+  position:relative; z-index:2;
+  width:240px; background:#0d1120; border:1px solid var(--border);
+  border-radius:28px; overflow:hidden; padding:14px;
+  box-shadow:0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,175,55,0.1);
+}
+.phone-notch {
+  width:60px; height:6px; background:#111827; border-radius:3px; margin:0 auto 12px;
+}
+.phone-screen { background:#080b15; border-radius:18px; padding:16px; }
+.phone-bar {
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
+}
+.phone-bar-title { font-size:0.55rem; font-weight:600; letter-spacing:0.12em; color:var(--gold); text-transform:uppercase; }
+.phone-progress-ring {
+  width:28px; height:28px; border-radius:50%;
+  background:conic-gradient(var(--gold) 72%, rgba(255,255,255,0.06) 0);
+  display:flex; align-items:center; justify-content:center;
+}
+.phone-progress-ring span { font-size:0.42rem; font-weight:700; color:var(--gold); }
+.phone-text { font-size:0.52rem; line-height:1.65; color:rgba(244,239,234,0.6); margin-bottom:12px; }
+.phone-question {
+  background:rgba(212,175,55,0.07); border:1px solid rgba(212,175,55,0.2);
+  border-radius:8px; padding:10px; margin-bottom:8px;
+}
+.phone-q-label { font-size:0.42rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--gold); margin-bottom:4px; }
+.phone-q-text { font-size:0.5rem; line-height:1.6; color:var(--white); font-weight:500; }
+.phone-answer {
+  background:#111827; border-radius:8px; padding:8px;
+  font-size:0.48rem; line-height:1.6; color:rgba(244,239,234,0.7); margin-bottom:8px;
+}
+.phone-gate {
+  display:flex; align-items:center; gap:6px; justify-content:center;
+  background:var(--gold); border-radius:6px; padding:6px; cursor:pointer;
+}
+.phone-gate span { font-size:0.45rem; font-weight:700; color:var(--bg); letter-spacing:0.1em; text-transform:uppercase; }
+
+/* QUOTE floating button on phone */
+.phone-quote-btn {
+  position:absolute; bottom:28px; right:-20px; z-index:10;
+  width:54px; height:54px; background:var(--gold); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 24px rgba(212,175,55,0.5);
+  animation:float 3s ease-in-out infinite;
+  border:2px solid rgba(255,255,255,0.15);
+  cursor:pointer;
+}
+@keyframes float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)} }
+.phone-quote-btn svg { color:#000; }
+
+.how-steps { display:flex; flex-direction:column; gap:1rem; }
+
+.how-step {
+  display:flex; gap:1rem; align-items:flex-start;
+  padding:1.2rem 1.4rem;
+  border:1px solid var(--border); background:var(--glass);
+  backdrop-filter:blur(10px);
+  transition:border-color .3s, background .3s, transform .3s;
+}
+.how-step:hover { border-color:var(--gold-mid); background:var(--gold-dim); transform:translateX(6px); }
+
+.how-step-num {
+  font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700;
+  color:var(--gold); line-height:1; flex-shrink:0; width:28px;
+}
+.how-step h3 { font-size:0.82rem; font-weight:600; margin-bottom:0.3rem; line-height:1.3; }
+.how-step p { font-size:0.82rem; line-height:1.7; color:var(--muted); }
+.how-step-icon { color:var(--gold); flex-shrink:0; margin-top:2px; }
+
+/* ─── TESTIMONIALS ─── */
+.testimonials {
+  position:relative; padding:2.5rem 6vw;
+  text-align:center;
+  background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);
+  overflow:hidden;
+}
+.testimonials .blob-bg {
+  position:absolute; width:500px; height:500px;
+  background:radial-gradient(circle,rgba(212,175,55,0.05),transparent 70%);
+  top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%;
+}
+.testimonials .section-label { justify-content:center; }
+.testimonials .section-label::before { display:none; }
+.testimonials .section-label::after { display:none; }
+.testimonials .section-h { margin:0 auto; max-width:600px; }
+
+.testi-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.5px; margin-top:2.8rem;
+}
+
+.testi-card {
+  background:var(--glass); border:1px solid var(--border);
+  padding:1.8rem 1.5rem; position:relative; overflow:hidden;
+  backdrop-filter:blur(12px); transition:transform .3s, border-color .3s;
+  text-align:center; display:flex; flex-direction:column; align-items:center;
+}
+.testi-card:hover { transform:translateY(-6px); border-color:var(--gold-mid); }
+.testi-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  transform:scaleX(0); transition:transform .4s;
+}
+.testi-card:hover::before { transform:scaleX(1); }
+
+.testi-avatar {
+  width:68px; height:68px; border-radius:50%;
+  border:1px solid var(--gold-mid); overflow:hidden; margin:0 auto 1rem;
+  background:linear-gradient(135deg,#1a1a2e,#2a1f0a);
+  display:flex; align-items:center; justify-content:center; font-size:1.5rem;
+}
+
+.testi-stars { display:flex; justify-content:center; gap:3px; margin-bottom:0.8rem; }
+.testi-stars span { color:var(--gold); font-size:0.85rem; }
+
+.testi-quote {
+  font-family:'Playfair Display',serif; font-size:0.9rem; font-style:italic;
+  line-height:1.55; color:var(--white); margin-bottom:0.8rem;
+}
+.testi-text { font-size:0.78rem; line-height:1.65; color:var(--muted); margin-bottom:1rem; }
+
+.testi-divider { height:1px; background:var(--border); margin-bottom:1.2rem; }
+
+.testi-name {
+  font-family:'Playfair Display',serif; font-size:0.92rem; font-weight:600; color:var(--gold);
+}
+.testi-role { font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); margin-top:2px; }
+
+/* wave divider */
+.wave-divider { width:100%; height:60px; position:relative; overflow:hidden; }
+.wave-svg { position:absolute; bottom:0; width:100%; opacity:0.15; }
+
+/* ─── CTA STRIP ─── */
+.cta-strip {
+  position:relative; padding:1.8rem 6vw;
+  background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(212,175,55,0.02));
+  border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  text-align:center; overflow:hidden;
+}
+.cta-strip .blob {
+  width:500px; height:500px;
+  background:radial-gradient(circle,rgba(212,175,55,0.08),transparent 70%);
+  top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%;
+}
+.cta-strip h2 {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(2.2rem,5vw,4rem); font-weight:700; line-height:1.1; position:relative;
+}
+.cta-strip h2 strong { color:var(--gold); }
+.cta-strip h2 .lightning { font-style:normal; margin-left:0.3rem; }
+.cta-strip-sub {
+  margin:1.2rem auto 2.5rem; max-width:480px;
+  font-size:1rem; color:var(--gold); font-weight:500; letter-spacing:0.04em; position:relative;
+}
+
+/* ─── PLANS ─── */
+.plans { position:relative; padding:2rem 6vw 3rem; }
+.plans-wrap {
+  display:grid; grid-template-columns:1fr 1fr; max-width:780px; margin:0 auto;
+  border:1px solid var(--border); background:var(--glass); backdrop-filter:blur(16px);
+  overflow:hidden;
+}
+.plan {
+  padding:1.8rem 2rem; position:relative;
+}
+.plan:first-child { border-right:1px solid var(--border); }
+
+.plan-name {
+  font-family:'Playfair Display',serif; font-size:1.8rem; font-weight:600;
+  margin-bottom:0.2rem;
+}
+.plan-tagline { font-size:0.8rem; color:var(--muted); margin-bottom:1.8rem; }
+
+.plan-price-block { margin-bottom:1.8rem; }
+.plan-price {
+  font-family:'Playfair Display',serif; font-size:2.4rem; font-weight:700;
+}
+.plan.pro .plan-price { color:var(--gold); }
+.plan-price-note { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+
+.plan-features { margin-bottom:2rem; }
+.plan-feat {
+  display:flex; align-items:flex-start; gap:0.8rem;
+  font-size:0.85rem; line-height:1.5; color:rgba(244,239,234,0.7); margin-bottom:0.85rem;
+}
+.plan-feat .check { color:var(--gold); flex-shrink:0; }
+.plan-feat.dim { color:rgba(244,239,234,0.25); }
+.plan-feat.dim .check { color:rgba(212,175,55,0.25); }
+
+.plan.pro::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.plan.pro .plan-badge {
+  display:inline-block; font-size:0.6rem; font-weight:700; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--bg); background:var(--gold);
+  padding:0.25rem 0.7rem; margin-bottom:1.2rem;
+}
+
+.plan-btn {
+  display:block; text-align:center; padding:0.95rem; font-size:0.82rem;
+  font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  text-decoration:none; transition:all .2s; cursor:pointer; border:none; width:100%;
+}
+.plan-btn.outline {
+  border:1px solid var(--border); color:var(--muted); background:transparent;
+}
+.plan-btn.outline:hover { border-color:var(--gold-mid); color:var(--white); }
+.plan-btn.gold { background:var(--gold); color:var(--bg); }
+.plan-btn.gold:hover { background:var(--gold-light); box-shadow:0 8px 28px rgba(212,175,55,0.45); }
+
+.pix-note {
+  text-align:center; margin-top:1.2rem; font-size:0.72rem; letter-spacing:0.08em;
+  color:var(--gray);
+}
+.pix-note strong { color:var(--gold); }
+
+/* ─── QUOTE SECTION (HERO) ─── */
+.quote-hero {
+  position:relative; padding:3rem 6vw;
+  background:linear-gradient(160deg,var(--bg2),var(--bg));
+  overflow:hidden; text-align:center;
+}
+.quote-hero .blob-q {
+  width:700px; height:700px;
+  background:radial-gradient(circle,rgba(212,175,55,0.07),transparent 70%);
+  top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%;
+}
+
+.quote-eyebrow {
+  display:inline-flex; align-items:center; gap:0.6rem;
+  font-size:0.68rem; font-weight:500; letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:1.2rem;
+}
+
+.quote-h {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(2.2rem,5vw,3.8rem); font-weight:700; line-height:1.1;
+  max-width:780px; margin:0 auto; position:relative;
+}
+.quote-h strong { color:var(--gold); }
+.quote-h .flash { color:var(--gold); }
+
+.quote-lead {
+  max-width:540px; margin:1.6rem auto 0;
+  font-size:0.95rem; line-height:1.85; color:var(--muted); position:relative;
+}
+
+/* Cards showcase */
+.cards-stage {
+  position:relative; display:flex; justify-content:center;
+  align-items:flex-end; gap:2rem; margin-top:1.8rem; flex-wrap:wrap;
+  padding-bottom:2rem;
+}
+
+/* GLOW under cards */
+.cards-stage::before {
+  content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+  width:500px; height:80px;
+  background:radial-gradient(ellipse,rgba(212,175,55,0.2),transparent 70%);
+  filter:blur(20px);
+}
+
+/* Individual share card */
+.share-card {
+  background:linear-gradient(145deg,#0e1220,#070a14);
+  border:1px solid var(--border); overflow:hidden;
+  position:relative; transition:transform .4s cubic-bezier(.17,.67,.35,1.2), box-shadow .4s;
+  cursor:pointer;
+}
+.share-card:hover { box-shadow:0 24px 60px rgba(212,175,55,0.18); }
+.share-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+
+.sc-stories {
+  width:155px; height:276px; padding:14px 12px;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+.sc-stories:hover { transform:rotate(-2deg) translateY(-12px); }
+
+.sc-linkedin {
+  width:290px; height:160px; padding:16px 18px;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+.sc-linkedin:hover { transform:translateY(-12px) scale(1.02); }
+
+.sc-stories-2 {
+  width:155px; height:276px; padding:14px 12px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  opacity:0.55;
+}
+.sc-stories-2:hover { transform:rotate(2deg) translateY(-12px); opacity:0.9; }
+
+.sc-logo {
+  font-family:'Playfair Display',serif; font-size:0.58rem; color:var(--gold);
+  letter-spacing:0.18em; text-transform:uppercase;
+  border-bottom:1px solid rgba(212,175,55,0.2); padding-bottom:7px; margin-bottom:8px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.sc-logo-dot { width:4px; height:4px; background:var(--gold); border-radius:50%; }
+
+.sc-quote-mark {
+  font-family:'Playfair Display',serif; font-size:2.5rem; line-height:0.5;
+  color:rgba(212,175,55,0.15); margin-bottom:4px;
+}
+
+.sc-quote-text {
+  font-family:'Playfair Display',serif; font-size:0.58rem; font-style:italic;
+  line-height:1.65; color:rgba(244,239,234,0.8); flex:1;
+}
+
+.sc-footer { margin-top:8px; }
+.sc-meta {
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;
+}
+.sc-chapter { font-size:0.45rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--gray); }
+.sc-score { font-size:0.52rem; font-weight:700; color:var(--gold); }
+
+.sc-bar-track { height:2px; background:rgba(255,255,255,0.06); border-radius:1px; overflow:hidden; }
+.sc-bar-fill { height:100%; background:linear-gradient(90deg,var(--gold),var(--gold-light)); transition:width 1s; }
+
+/* LinkedIn card specifics */
+.sc-linkedin .sc-quote-text { font-size:0.6rem; }
+.sc-linkedin-tag {
+  display:inline-block; font-size:0.45rem; font-weight:600; letter-spacing:0.15em;
+  text-transform:uppercase; background:var(--gold-dim); color:var(--gold);
+  border:1px solid rgba(212,175,55,0.2); padding:2px 6px; margin-top:5px;
+}
+
+/* QUOTE button */
+.btn-quote {
+  display:inline-flex; align-items:center; gap:0.7rem;
+  margin-top:2rem; padding:1.1rem 2.5rem;
+  background:transparent; border:1px solid var(--gold);
+  color:var(--gold); font-size:0.85rem; font-weight:600; letter-spacing:0.1em;
+  text-transform:uppercase; cursor:pointer; position:relative;
+  transition:background .3s, color .3s; overflow:hidden;
+}
+.btn-quote::before {
+  content:''; position:absolute; inset:0;
+  background:var(--gold); transform:scaleX(0); transform-origin:left;
+  transition:transform .3s; z-index:0;
+}
+.btn-quote:hover::before { transform:scaleX(1); }
+.btn-quote:hover { color:var(--bg); }
+.btn-quote span, .btn-quote svg { position:relative; z-index:1; }
+
+.quote-proof {
+  display:flex; justify-content:center; gap:3rem; margin-top:1.8rem; position:relative;
+}
+.qp-item { text-align:center; }
+.qp-num {
+  font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700; color:var(--gold);
+}
+.qp-label { font-size:0.65rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--gray); margin-top:2px; }
+
+/* ─── FOOTER ─── */
+footer {
+  border-top:1px solid rgba(212,175,55,0.08); padding:2rem 6vw 1.5rem;
+  display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1.5rem;
+}
+.footer-brand { max-width:240px; }
+.footer-logo-text {
+  font-family:'Playfair Display',serif; font-size:1.15rem; color:var(--gold); letter-spacing:0.06em;
+}
+.footer-logo-text span { color:var(--white); font-style:italic; }
+.footer-desc { font-size:0.78rem; line-height:1.7; color:var(--muted); margin-top:0.8rem; }
+
+.footer-links { display:flex; flex-direction:column; gap:0.7rem; }
+.footer-links a {
+  font-size:0.75rem; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--gray); text-decoration:none; transition:color .2s;
+}
+.footer-links a:hover { color:var(--gold); }
+
+.footer-seal {
+  display:flex; flex-direction:column; align-items:flex-end; gap:0.6rem;
+}
+.seal-row { display:flex; align-items:center; gap:0.6rem; }
+.seal-icon {
+  width:30px; height:30px; border:1px solid var(--gold-mid);
+  display:flex; align-items:center; justify-content:center; color:var(--gold);
+}
+.seal-text { font-size:0.7rem; letter-spacing:0.08em; color:var(--gray); }
+.footer-copy {
+  width:100%; border-top:1px solid rgba(255,255,255,0.04);
+  padding-top:1.4rem; font-size:0.68rem; color:var(--gray); letter-spacing:0.05em; text-align:center;
+}
+
+/* ─── SCROLL REVEAL ─── */
+.reveal { opacity:0; transform:translateY(28px); transition:opacity .7s ease,transform .7s ease; }
+.reveal.in { opacity:1; transform:none; }
+.d1{transition-delay:.1s} .d2{transition-delay:.2s} .d3{transition-delay:.3s} .d4{transition-delay:.4s}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:900px){
+  .how-grid,.testi-grid,.plans-wrap{grid-template-columns:1fr}
+  .plan:first-child{border-right:none;border-bottom:1px solid var(--border)}
+  .hero-trust{flex-wrap:wrap;gap:1rem}
+  .trust-sep{display:none}
+  footer{flex-direction:column}
+  .footer-seal{align-items:flex-start}
+  .hero h1{font-size:clamp(1.5rem,5vw,2.2rem)}
+  .how-grid{gap:2rem}
+  nav{padding:0.9rem 4vw}
+}
+@media(max-width:600px){
+  .cards-stage{gap:1rem}
+  .sc-stories,.sc-stories-2{width:120px;height:214px}
+  .sc-linkedin{width:240px;height:136px}
+}
+
+/* ─── SCORE SECTION ─── */
+.score-section {
+  position:relative;
+  padding:2.5rem 6vw 3rem;
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+  overflow:hidden;
+}
+.score-section::before {
+  content:'';
+  position:absolute; inset:0;
+  background:radial-gradient(ellipse 70% 60% at 50% 50%, rgba(212,175,55,0.05), transparent);
+  pointer-events:none;
+}
+.score-inner {
+  max-width:1000px; margin:0 auto;
+  display:grid; grid-template-columns:1fr auto 1fr; gap:3rem; align-items:center;
+}
+.score-left { display:flex; flex-direction:column; gap:1.2rem; }
+.score-label-block {
+  display:inline-flex; align-items:center; gap:0.6rem;
+  font-size:0.65rem; font-weight:600; letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:0.2rem;
+}
+.score-left h2 {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.3rem,2.5vw,2rem); font-weight:700; line-height:1.2;
+}
+.score-left h2 em { color:var(--gold); font-style:italic; }
+.score-left p { font-size:0.82rem; line-height:1.75; color:var(--muted); max-width:340px; }
+.score-metrics { display:flex; flex-direction:column; gap:0.8rem; margin-top:0.4rem; }
+.score-metric {
+  display:flex; align-items:center; gap:0.8rem;
+}
+.score-metric-label {
+  font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--muted); width:110px; flex-shrink:0;
+}
+.score-bar-track {
+  flex:1; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden;
+}
+.score-bar-fill {
+  height:100%; border-radius:2px;
+  background:linear-gradient(90deg,var(--gold),var(--gold-light));
+  transition:width 1.5s cubic-bezier(.16,1,.3,1);
+}
+.score-metric-val {
+  font-size:0.72rem; font-weight:700; color:var(--gold); width:32px; text-align:right;
+}
+
+/* Central ring */
+.score-ring-wrap {
+  display:flex; flex-direction:column; align-items:center; gap:0.8rem; flex-shrink:0;
+}
+.score-ring {
+  position:relative; width:160px; height:160px;
+}
+.score-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+.score-ring-bg { fill:none; stroke:rgba(212,175,55,0.08); stroke-width:8; }
+.score-ring-fill {
+  fill:none; stroke:url(#goldGrad); stroke-width:8;
+  stroke-linecap:round;
+  stroke-dasharray: 439; /* 2π * 70 */
+  stroke-dashoffset: 439;
+  transition: stroke-dashoffset 1.8s cubic-bezier(.16,1,.3,1);
+}
+.score-ring-fill.animated { stroke-dashoffset: 57; } /* 439 * (1 - 0.87) */
+.score-center {
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+}
+.score-number {
+  font-family:'Playfair Display',serif;
+  font-size:2rem; font-weight:700; color:var(--gold); line-height:1;
+  counter-reset: score;
+}
+.score-pct { font-size:0.60rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+.score-ring-label {
+  font-size:0.65rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gray);
+  text-align:center;
+}
+.score-ring-glow {
+  position:absolute; inset:-20px; border-radius:50%;
+  background:radial-gradient(circle,rgba(212,175,55,0.12),transparent 70%);
+  animation:breathe 4s ease-in-out infinite;
+  pointer-events:none;
+}
+
+/* Right side */
+.score-right { display:flex; flex-direction:column; gap:1rem; }
+.score-insight {
+  padding:1rem 1.2rem;
+  border:1px solid var(--border); background:var(--glass);
+  backdrop-filter:blur(8px);
+  border-radius:2px;
+  display:flex; gap:0.8rem; align-items:flex-start;
+}
+.score-insight-icon {
+  width:28px; height:28px; border:1px solid var(--gold-mid);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--gold); flex-shrink:0;
+}
+.score-insight-text { font-size:0.78rem; line-height:1.6; color:var(--muted); }
+.score-insight-text strong { color:var(--white); font-weight:600; display:block; margin-bottom:2px; font-size:0.8rem; }
+
+@media(max-width:900px){
+  .score-inner { grid-template-columns:1fr; gap:2rem; }
+  .score-ring-wrap { margin:0 auto; }
+  .score-left p { max-width:100%; }
+}
+
+/* ─── SOCIAL PROOF (with photos) ─── */
+.testi-photo {
+  width:64px; height:64px; border-radius:50%;
+  border:2px solid var(--gold-mid);
+  overflow:hidden; flex-shrink:0; margin:0 auto 1rem;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.testi-card { display:flex; flex-direction:column; align-items:center; }
+.testi-avatar { display:none; }
+
 </style>
 </head>
 <body>
 
-<!-- ══ TOAST ══ -->
-<div class="toast" id="toast"></div>
-<div class="overlay" id="overlay" onclick="closeSb()"></div>
-
-<!-- ══ MODAL ══ -->
-<!-- NOVO — modal zerar dados -->
-<div class="modal" id="modal-zerar-wrap">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <h3 style="color:#991B1B">⚠️ Ação Irreversível</h3>
-      <button class="modal-close" onclick="fecharModalZerar()">✕</button>
-    </div>
-    <div style="padding:22px">
-      <p style="font-size:13px;color:var(--g700);margin-bottom:16px;line-height:1.6">Todos os pagamentos, documentos do cofre e configurações serão <strong>apagados permanentemente</strong>. Digite sua senha para confirmar.</p>
-      <label style="display:block;font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Senha de confirmação</label>
-      <input type="password" id="zerar-senha" placeholder="Digite sua senha..." style="width:100%;padding:11px 14px;border:1.5px solid #FCA5A5;border-radius:9px;font-family:var(--font);font-size:14px;outline:none;margin-bottom:6px" oninput="validarSenhaZerar()"/>
-      <p id="zerar-erro" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:14px"></p>
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-r" id="btn-confirmar-zerar" onclick="confirmarZerar()" disabled>🗑️ Apagar tudo</button>
-        <button class="btn btn-outline" onclick="fecharModalZerar()">Cancelar</button>
-      </div>
-    </div>
+<!-- NAV -->
+<nav>
+  <!-- CORREÇÃO 2 — Logo nova hospedada no ImgBB (sem base64) -->
+  <a href="/app" class="nav-logo" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+    <img src="https://i.ibb.co/Xkfz5QKL/sua-logo-stepbook.png"
+      alt="StepBook"
+      style="height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 0 8px rgba(212,175,55,0.55));" />
+    <span style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:#D4AF37;letter-spacing:0.04em;">StepBook</span>
+  </a>
+  <div class="nav-right">
+    <a href="#como-funciona" class="nav-link">Como Funciona</a>
+    <a href="/app" class="nav-cta">Começar Grátis</a>
   </div>
-</div>
+</nav>
 
-<div class="modal" id="modal">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <h3 id="modal-title">Comprovante</h3>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <!-- CORREÇÃO 3 — Logo centralizada no topo do hero com glow dourado -->
+  <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:0.6rem;opacity:0;animation:fadeUp .7s .05s forwards;">
+    <img
+      src="https://i.ibb.co/Xkfz5QKL/sua-logo-stepbook.png"
+      alt="StepBook"
+      style="width:140px;height:140px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(212,175,55,0.55)) drop-shadow(0 0 6px rgba(212,175,55,0.30));"
+    />
   </div>
-</div>
-
-<!-- ═══════════════ SCREEN LOGIN ═══════════════ -->
-<div id="screen-login" class="screen active">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="logo-icon">⚖️</div>
-      <div>
-        <div class="logo-text">Pensão Check</div>
-        <div class="logo-sub">Controle de Pagamentos</div>
-      </div>
-    </div>
-
-    <!-- NOVO — estado normal: botões de login -->
-    <div id="login-buttons">
-      <p style="font-size:13px;color:var(--g500);text-align:center;margin-bottom:20px;line-height:1.5">
-        Controle seus pagamentos de pensão de forma simples e segura.
-      </p>
-
-      <!-- Entrar com Google — Google Identity Services One Tap -->
-      <button class="btn-google" onclick="loginComGoogle()">
-        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        Entrar com Google
-      </button>
-      <!-- Fallback: botão Google renderizado se One Tap for bloqueado pelo browser -->
-      <div id="google-btn-container" style="display:flex;justify-content:center;margin-top:4px"></div>
-
-      <div class="login-divider">ou</div>
-
-      <!-- NOVO — botão Demo (sem autenticação real) -->
-      <button class="frm-btn" style="background:var(--navy)" onclick="doLoginDemo()">⚡ Entrar no modo Demo</button>
-      <p class="login-hint" style="margin-top:12px">
-        O modo Demo usa armazenamento local.<br/>
-        Para sincronização real, use o login Google.
-      </p>
-    </div>
-
-    <!-- NOVO — estado de carregando após OAuth redirect -->
-    <div id="login-loading" class="hidden">
-      <div class="spinner-wrap">
-        <div class="spinner"></div>
-        <p style="font-size:13px;color:var(--g500)">Autenticando com Google…</p>
-      </div>
-    </div>
+  <div class="hero-badge">Novo · Leitura com IA Cognitiva</div>
+  <h1>Leia. Questione. <em>Domine.</em></h1>
+  <p class="hero-sub">O leitor com IA que confronta sua compreensão e gera cards premium para suas redes sociais.</p>
+  <div class="hero-actions">
+    <a href="/app" class="btn-primary">Começar Gratuitamente →</a>
+    <a href="#como-funciona" class="btn-ghost">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      Como funciona
+    </a>
   </div>
-</div>
+  <div class="hero-trust">
+    <div class="trust-item"><span class="trust-num">97%</span><span class="trust-label">Retenção</span></div>
+    <div class="trust-sep"></div>
+    <div class="trust-item"><span class="trust-num">3×</span><span class="trust-label">Mais Rápido</span></div>
+    <div class="trust-sep"></div>
+    <div class="trust-item"><span class="trust-num">∞</span><span class="trust-label">Livros no PRO</span></div>
+    <div class="trust-sep"></div>
+    <div class="trust-item"><span class="trust-num">R$6,99</span><span class="trust-label">Plano PRO</span></div>
+  </div>
+</section>
 
-<!-- ═══════════════ SCREEN APP ═══════════════ -->
-<div id="screen-app" class="screen">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sb-logo">
-      <div class="sb-logo-icon">⚖️</div>
-      <div>
-        <div class="sb-logo-text">Pensão Check</div>
-        <div class="sb-logo-sub">Painel</div>
+<!-- ─── SCORE SECTION ─── -->
+<section class="score-section">
+  <div class="score-inner">
+
+    <!-- LEFT: labels + metric bars -->
+    <div class="score-left reveal">
+      <div class="score-label-block">◆ Sistema de Pontuação Premium</div>
+      <h2>Seu domínio real<br>sobre o livro. <em>Medido.</em></h2>
+      <p>Cada resposta é avaliada semanticamente pela IA — não basta acertar, é preciso demonstrar compreensão profunda. O score cresce com a qualidade das suas reflexões.</p>
+      <div class="score-metrics">
+        <div class="score-metric">
+          <span class="score-metric-label">Compreensão</span>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:87%" data-width="87%"></div></div>
+          <span class="score-metric-val">87%</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric-label">Retenção</span>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:94%" data-width="94%"></div></div>
+          <span class="score-metric-val">94%</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric-label">Profundidade</span>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:73%" data-width="73%"></div></div>
+          <span class="score-metric-val">73%</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric-label">Aplicação</span>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:81%" data-width="81%"></div></div>
+          <span class="score-metric-val">81%</span>
+        </div>
       </div>
     </div>
-    <nav class="sb-nav">
-      <div class="sb-section">Principal</div>
-      <button class="sb-item active" id="nav-dashboard"  onclick="showView('dashboard')"><span class="si">🏠</span> Dashboard</button>
-      <button class="sb-item"        id="nav-adicionar"  onclick="showView('adicionar')"><span class="si">➕</span> Novo Pagamento</button>
-      <button class="sb-item"        id="nav-historico"  onclick="showView('historico')"><span class="si">📋</span> Histórico</button>
-      <button class="sb-item"        id="nav-cofre"      onclick="showView('cofre')"><span class="si">🗂️</span> Cofre</button>
-      <button class="sb-item"        id="nav-relatorios" onclick="showView('relatorios')"><span class="si">📊</span> Relatórios</button>
-      <button class="sb-item"        id="nav-config"     onclick="showView('config')"><span class="si">⚙️</span> Configurações</button>
-      <div class="sb-suporte-wrap">
-        <a class="sb-suporte-link verde" href="https://wa.me/SEU_NUMERO?text=Oi%2C+preciso+de+ajuda+no+Pens%C3%A3o+Check" target="_blank" rel="noopener">
-          <span class="si">💬</span>
-          <div class="sl-text"><span>Suporte 24H</span><small>WhatsApp – resposta imediata</small></div>
-        </a>
-      </div>
-    </nav>
-    <div class="sb-footer">
-      <div class="sb-user">
-        <div class="sb-avatar" id="sb-avatar">D</div>
-        <div style="flex:1;min-width:0">
-          <div class="sb-user-name" id="sb-nome">Demo</div>
-          <div class="sb-user-email" id="sb-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6d090800022d1d08031e0c020e05080e06430e0200">[email&#160;protected]</a></div>
+
+    <!-- CENTER: ring -->
+    <div class="score-ring-wrap reveal d2">
+      <div class="score-ring">
+        <div class="score-ring-glow"></div>
+        <svg viewBox="0 0 160 160">
+          <defs>
+            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#D4AF37"/>
+              <stop offset="100%" stop-color="#f0d060"/>
+            </linearGradient>
+          </defs>
+          <circle class="score-ring-bg" cx="80" cy="80" r="70"/>
+          <circle class="score-ring-fill" id="scoreRing" cx="80" cy="80" r="70"/>
+        </svg>
+        <div class="score-center">
+          <span class="score-number" id="scoreNum">87</span>
+          <span class="score-pct">Score de Domínio</span>
         </div>
-        <button class="sb-logout" onclick="doLogout()" title="Sair">🚪</button>
+      </div>
+      <span class="score-ring-label">Atomic Habits · Cap. 12 de 20</span>
+    </div>
+
+    <!-- RIGHT: insights -->
+    <div class="score-right reveal d3">
+      <div class="score-insight">
+        <div class="score-insight-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="score-insight-text">
+          <strong>Análise Semântica Real</strong>
+          A IA identifica lacunas de compreensão e gera perguntas de refinamento personalizadas antes de liberar o próximo capítulo.
+        </div>
+      </div>
+      <div class="score-insight">
+        <div class="score-insight-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="score-insight-text">
+          <strong>Score Acumulado por Livro</strong>
+          Cada livro gera um certificado de domínio com sua pontuação final — pronto para compartilhar ou usar como prova de aprendizado.
+        </div>
+      </div>
+      <div class="score-insight" style="border-color:rgba(212,175,55,0.3);background:rgba(212,175,55,0.04)">
+        <div class="score-insight-icon" style="border-color:var(--gold-mid)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="score-insight-text">
+          <strong>Apenas no PRO: Score Profundo</strong>
+          Métricas avançadas de aplicação prática, comparação com outros leitores e histórico completo de evolução por livro.
+        </div>
       </div>
     </div>
-  </aside>
-  <main class="app-main">
-    <header class="app-hdr">
-      <div class="hdr-left">
-        <button class="hdr-hamburger" onclick="toggleSb()">☰</button>
-        <span id="view-title">Dashboard</span>
-      </div>
-      <div class="hdr-right">
-        <span id="hdr-badge" class="badge-free">FREE</span>
-        <button class="btn btn-g btn-sm" onclick="showView('adicionar')">➕ Novo</button>
-      </div>
-    </header>
 
-    <div class="app-cnt">
+  </div>
+</section>
 
-      <!-- ── DASHBOARD ── -->
-      <div class="vw" id="view-dashboard">
-        <!-- NOVO — alerta de status de comprovantes -->
-        <div id="alerta-topo"></div>
-        <div id="dash-alert"></div>
-        <div class="dash-cards" id="dash-cards"></div>
-        <!-- NOVO — painel de pendentes abaixo dos cards -->
-        <div id="painel-pendentes"></div>
-        <div class="section-title">👥 Beneficiários</div>
-        <div class="benef-grid" id="benef-grid"></div>
-        <div class="section-title">📄 Últimos Pagamentos</div>
-        <div class="last-pags card" id="last-pags"></div>
-      </div>
-
-      <!-- ── HISTORICO ── -->
-      <div class="vw hidden" id="view-historico">
-        <div class="hist-toolbar">
-          <select id="fano" onchange="renderH()"><option value="">Todos os anos</option></select>
-          <select id="fmes" onchange="renderH()">
-            <option value="">Todos os meses</option>
-            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
-            <option value="03">Março</option><option value="04">Abril</option>
-            <option value="05">Maio</option><option value="06">Junho</option>
-            <option value="07">Julho</option><option value="08">Agosto</option>
-            <option value="09">Setembro</option><option value="10">Outubro</option>
-            <option value="11">Novembro</option><option value="12">Dezembro</option>
-          </select>
-          <div class="hist-spacer"></div>
-          <button class="btn btn-n btn-sm" onclick="gerarPDF('completo')">📄 Gerar PDF</button>
-          <button class="btn btn-g btn-sm" onclick="showView('adicionar')">+ Novo</button>
-        </div>
-        <div class="hist-summary" id="hist-summary"></div>
-        <div class="table-wrap" id="hist-table-wrap"></div>
-      </div>
-
-      <!-- ── ADICIONAR ── -->
-      <div class="vw hidden" id="view-adicionar">
-        <div class="form-section">
-          <div class="form-section-title">📅 Referência e Pagamento</div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Mês Referência</label>
-              <select id="f-mes">
-                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
-                <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05">Maio</option><option value="06">Junho</option>
-                <option value="07">Julho</option><option value="08">Agosto</option>
-                <option value="09">Setembro</option><option value="10">Outubro</option>
-                <option value="11">Novembro</option><option value="12">Dezembro</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Ano</label>
-              <input type="number" id="f-ano" value="" min="2000" max="2099"/>
-            </div>
-            <div class="form-group">
-              <label>Data do Pagamento</label>
-              <input type="date" id="f-data"/>
-            </div>
-            <div class="form-group">
-              <label>Valor (R$)</label>
-              <input type="number" id="f-valor" placeholder="0,00" step="0.01" min="0"/>
-            </div>
-            <div class="form-group">
-              <label>Forma de Pagamento</label>
-              <select id="f-forma">
-                <option>Pix</option><option>TED</option><option>Boleto</option><option>Dinheiro</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Status</label>
-              <select id="f-status"><option value="pago">✅ Pago</option><option value="pendente">⏳ Pendente</option></select>
-            </div>
+<!-- ─── HOW IT WORKS ─── -->
+<section class="how" id="como-funciona">
+  <div class="reveal" style="text-align:center">
+    <div class="section-label">Como Funciona</div>
+    <h2 class="section-h" style="text-align:center;max-width:500px;margin:0 auto">Não é um leitor. <em>É um Mentor Cognitivo.</em></h2>
+  </div>
+  <div class="how-grid">
+    <!-- Phone mockup -->
+    <div class="phone-wrap reveal d1">
+      <div class="phone-glow"></div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar">
+            <span class="phone-bar-title">Atomic Habits · Cap. 3</span>
+            <div class="phone-progress-ring"><span>72%</span></div>
           </div>
-          <div class="form-group">
-            <label>Chave Pix (auto-extraída)</label>
-            <input type="text" id="f-pix" placeholder="Será preenchida automaticamente..."/>
+          <p class="phone-text">
+            "O sistema de hábitos atômicos parte de uma premissa simples: mudanças imensuráveis acumuladas ao longo do tempo produzem resultados extraordinários. Não são os grandes gestos, mas os micro-progressos diários..."
+          </p>
+          <div class="phone-question">
+            <div class="phone-q-label">◆ Pergunta Reflexiva</div>
+            <div class="phone-q-text">Como o conceito de "1% melhor por dia" se conecta com a ideia de identidade que o autor apresenta?</div>
           </div>
-          <div class="form-group">
-            <label>Observação</label>
-            <textarea id="f-obs" rows="2" style="resize:vertical;width:100%;padding:11px 14px;border:1.5px solid var(--g200);border-radius:9px;font-family:var(--font);font-size:14px;outline:none" placeholder="Notas adicionais..."></textarea>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title" style="margin-bottom:6px">👥 Beneficiários <span id="benef-checks-count" style="font-size:12px;font-weight:400;color:var(--g400)"></span></div>
-          <p style="font-size:12px;color:var(--g500);margin-bottom:14px">Selecione quem este pagamento cobre. <button class="link-btn" style="font-size:12px" onclick="showView('config')">Gerenciar beneficiários →</button></p>
-          <div class="benef-checks-wrap" id="benef-checks"></div>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">📎 Comprovante <span style="font-size:12px;font-weight:400;color:var(--g400)">(obrigatório para salvar)</span></div>
-          <div id="upload-container">
-            <div class="upload-area" id="upload-area" onclick="document.getElementById('f-comp').click()">
-              <div class="upload-icon">📎</div>
-              <div class="upload-text">Clique para anexar comprovante</div>
-              <div class="upload-sub">Imagem (JPG, PNG, WEBP) ou PDF — max 10MB</div>
-              <input type="file" id="f-comp" accept="image/*,.pdf" style="display:none" onchange="handleUpload(event)"/>
-            </div>
-          </div>
-          <div id="preview-container" class="hidden" style="margin-top:12px">
-            <div class="preview-area" id="preview-area"></div>
-          </div>
-          <!-- NOVO — indicador de progresso do upload Drive -->
-          <div class="upload-progress" id="upload-progress">
-            <div class="up-spinner"></div>
-            <span id="upload-progress-text">Enviando para Google Drive…</span>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button class="btn btn-outline" onclick="showView('historico')">Cancelar</button>
-          <button class="btn btn-g" id="btn-salvar" disabled onclick="salvarPagamento()">💾 Salvar Pagamento</button>
+          <div class="phone-answer">Minha resposta: A identidade é moldada pelas evidências que acumulamos de nós mesmos através das ações repetidas...</div>
+          <div class="phone-gate"><span>✓ Gate Liberado · Próximo Capítulo</span></div>
         </div>
       </div>
-
-      <!-- ── COFRE ── -->
-      <div class="vw hidden" id="view-cofre">
-        <div class="cofre-form">
-          <div class="form-section-title" style="margin-bottom:16px">📁 Adicionar ao Cofre</div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Categoria</label>
-              <select id="cv-cat"><option value="comprovante">Comprovante</option><option value="juridico">Jurídico</option><option value="outro">Outro</option></select>
-            </div>
-            <div class="form-group">
-              <label>Descrição</label>
-              <input type="text" id="cv-desc" placeholder="Ex: Acordo judicial 2024"/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Arquivo</label>
-            <div class="upload-area" style="padding:20px" onclick="document.getElementById('cv-file').click()">
-              <div class="upload-icon" style="font-size:24px">📤</div>
-              <div class="upload-text" id="cv-file-name">Clique para selecionar arquivo</div>
-              <input type="file" id="cv-file" accept="image/*,.pdf" style="display:none" onchange="handleCofreUpload(event)"/>
-            </div>
-          </div>
-          <button class="btn btn-g" id="btn-cofre-salvar" onclick="salvarCofre()">🗂️ Salvar no Cofre</button>
-        </div>
-        <div class="section-title">📦 Documentos Salvos</div>
-        <div class="cofre-grid" id="cofre-grid"></div>
-        <div id="cofre-empty"></div>
+      <div class="phone-quote-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       </div>
-
-      <!-- ── RELATORIOS ── -->
-      <div class="vw hidden" id="view-relatorios">
-        <div class="rel-cards" id="rel-cards"></div>
-        <div class="rel-actions" id="rel-actions"></div>
-        <div id="rel-empty"></div>
-      </div>
-
-      <!-- ── CONFIG ── -->
-      <div class="vw hidden" id="view-config">
-        <div class="config-section">
-          <div class="config-title">👤 Dados Pessoais</div>
-          <div class="form-grid-2">
-            <div class="form-group"><label>Nome</label><input type="text" id="cfg-nome"/></div>
-            <div class="form-group"><label>E-mail</label><input type="email" id="cfg-email"/></div>
-          </div>
-          <button class="btn btn-g btn-sm" onclick="salvarConfig()">💾 Salvar Dados</button>
-        </div>
-
-        <div class="config-section">
-          <div class="config-title" style="justify-content:space-between">
-            <span>👥 Beneficiários</span>
-            <button class="btn btn-g btn-sm" id="btn-add-benef" onclick="toggleBenefForm()">➕ Adicionar</button>
-          </div>
-          <div id="benef-config-list"></div>
-          <div id="benef-form" class="hidden benef-add-panel">
-            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;display:flex;align-items:center;gap:6px">➕ Novo Beneficiário</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Nome completo *</label>
-                <input type="text" id="bf-nome" placeholder="Ex: Maria Silva" oninput="validateBenefForm()"/>
-              </div>
-              <div class="form-group">
-                <label>Data de Nascimento</label>
-                <input type="date" id="bf-nasc"/>
-              </div>
-              <div class="form-group">
-                <label>Início da Pensão</label>
-                <input type="date" id="bf-inicio"/>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-              <button class="btn btn-g btn-sm" id="btn-benef-salvar" onclick="adicionarBeneficiario()" disabled>✅ Salvar Beneficiário</button>
-              <button class="btn btn-outline btn-sm" onclick="toggleBenefForm()">Cancelar</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="config-section">
-          <div class="config-title">🏷️ Plano e Licença</div>
-          <div class="plan-info" id="plan-info"></div>
-          <div class="form-group" style="max-width:360px">
-            <label>Ativar licença Pro</label>
-            <div class="license-input-wrap">
-              <input type="text" id="cfg-licenca" placeholder="XXXXXXXXXXXX" maxlength="12" oninput="this.value=this.value.toUpperCase()"/>
-              <button class="btn btn-g btn-sm" onclick="ativarLicenca()">Ativar</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="config-section">
-          <div class="config-title">🔔 Notificações</div>
-          <div class="toggle-wrap">
-            <label class="toggle"><input type="checkbox" id="cfg-lembrete"/><span class="toggle-slider"></span></label>
-            <span style="font-size:14px;font-weight:500">Lembretes de vencimento</span>
-          </div>
-        </div>
-
-        <!-- NOVO — zona de perigo -->
-        <div class="config-section">
-          <div class="config-title" style="color:#991B1B">⚠️ Zona de Perigo</div>
-          <div class="danger-zone">
-            <div class="danger-zone-title">🗑️ Zerar todos os arquivos</div>
-            <p>Esta ação apaga <strong>permanentemente</strong> todos os pagamentos, documentos do cofre e configurações. Não pode ser desfeita.</p>
-            <button class="btn btn-r btn-sm" onclick="abrirModalZerar()">🗑️ Zerar todos os dados</button>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /app-cnt -->
-  </main>
-  <!-- PWA — Bottom Navigation Bar (mobile only) -->
-  <nav id="bottom-nav" aria-label="Navegação principal">
-    <button class="bn-item active" id="bn-dashboard"  onclick="showView('dashboard')">
-      <span class="bn-icon">🏠</span><span class="bn-label">Início</span>
-    </button>
-    <button class="bn-item"        id="bn-adicionar"  onclick="showView('adicionar')">
-      <span class="bn-icon bn-add">＋</span><span class="bn-label">Pagar</span>
-    </button>
-    <button class="bn-item"        id="bn-historico"  onclick="showView('historico')">
-      <span class="bn-icon">📋</span><span class="bn-label">Histórico</span>
-    </button>
-    <button class="bn-item"        id="bn-cofre"      onclick="showView('cofre')">
-      <span class="bn-icon">🗂️</span><span class="bn-label">Cofre</span>
-    </button>
-    <button class="bn-item"        id="bn-config"     onclick="showView('config')">
-      <span class="bn-icon">⚙️</span><span class="bn-label">Conta</span>
-    </button>
-  </nav>
-</div><!-- /screen-app -->
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ═══════════════════════════════════════
-//  CONFIGURAÇÃO — Cloudflare Worker API
-// ═══════════════════════════════════════
-const WORKER_URL = "https://pensao-check-api.pixdigital-erick.workers.dev";
-
-// ─── Google Client ID para login ────────────────────────────
-// PASSO: Google Cloud Console → APIs & Services → Credentials
-//        → Create OAuth 2.0 Client ID (Web application)
-//        → Authorized origins: URL onde o app está hospedado
-// Cole o Client ID abaixo:
-const GOOGLE_CLIENT_ID = "SEU_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // ← substitua
-
-// ═══════════════════════════════════════
-//  HELPER — chamadas ao Worker
-// ═══════════════════════════════════════
-async function api(method, path, body = null) {
-  const uid = currentUser?.id || "";
-  const opts = {
-    method,
-    headers: { "Content-Type": "application/json", "X-User-Id": uid }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  try {
-    const res = await fetch(WORKER_URL + path, opts);
-    return await res.json();
-  } catch(e) {
-    console.warn("Worker API error:", e.message);
-    return null;
-  }
-}
-
-// NOVO — upload de arquivo para R2 via Worker
-async function uploadArquivo(file) {
-  const uid = currentUser?.id || "";
-  if (!uid || modoDemo) return null; // modo demo: sem upload real
-  const fd = new FormData();
-  fd.append("file", file);
-  try {
-    const res = await fetch(WORKER_URL + "/api/upload", {
-      method: "POST",
-      headers: { "X-User-Id": uid },
-      body: fd
-    });
-    const data = await res.json();
-    return data?.url || null;
-  } catch(e) {
-    console.warn("Upload R2 error:", e.message);
-    return null;
-  }
-}
-
-// ─── Estado de autenticação ──────────────────────────────────
-let modoDemo = false;
-
-// ═══════════════════════════════════════
-//  ESTADO GLOBAL
-// ═══════════════════════════════════════
-let pags = [];
-let cofre = [];
-let currentUser = null; // usuário autenticado (Google login ou demo)
-
-const MESES = ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-               "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-
-const VT = {
-  dashboard:  "Dashboard",
-  adicionar:  "Novo Pagamento",
-  historico:  "Histórico",
-  cofre:      "Cofre",
-  relatorios: "Relatórios",
-  config:     "Configurações"
-};
-
-const DEMO = [
-  { id:"d1", valor:650, dataPagamento:"2026-01-15", mesReferencia:"01", anoReferencia:"2026",
-    formaPagamento:"Pix", observacao:"Pagamento referente a janeiro", status:"pago",
-    comprovante:null, comprovanteNome:"", chavePix:"123.456.789-00",
-    beneficiarios:["Ana"], isExtra:false, createdAt:"2026-01-15T10:00:00Z" },
-  { id:"d2", valor:650, dataPagamento:"2026-02-15", mesReferencia:"02", anoReferencia:"2026",
-    formaPagamento:"Pix", observacao:"", status:"pago",
-    comprovante:null, comprovanteNome:"", chavePix:"123.456.789-00",
-    beneficiarios:["Ana"], isExtra:false, createdAt:"2026-02-15T10:00:00Z" },
-  { id:"d3", valor:650, dataPagamento:"2026-03-15", mesReferencia:"03", anoReferencia:"2026",
-    formaPagamento:"Pix", observacao:"", status:"pago",
-    comprovante:null, comprovanteNome:"", chavePix:"",
-    beneficiarios:["Ana"], isExtra:false, createdAt:"2026-03-15T10:00:00Z" },
-  { id:"d4", valor:325, dataPagamento:"2025-12-15", mesReferencia:"12", anoReferencia:"2025",
-    formaPagamento:"TED", observacao:"Pagamento dezembro", status:"pago",
-    comprovante:null, comprovanteNome:"", chavePix:"",
-    beneficiarios:["Ana"], isExtra:false, createdAt:"2025-12-15T10:00:00Z" }
-];
-
-// ═══════════════════════════════════════
-//  PERSISTÊNCIA — Cloudflare Worker + localStorage fallback
-// ═══════════════════════════════════════
-async function load() {
-  const uid = currentUser?.id;
-
-  if (uid && !modoDemo) {
-    // Carrega pagamentos do Worker (D1)
-    try {
-      const data = await api("GET", "/api/pagamentos");
-      if (Array.isArray(data)) { pags = data; localStorage.setItem("pc3", JSON.stringify(pags)); }
-      else { pags = JSON.parse(localStorage.getItem("pc3") || "[]"); }
-    } catch { pags = JSON.parse(localStorage.getItem("pc3") || "[]"); }
-
-    // Carrega cofre do Worker (D1)
-    try {
-      const data = await api("GET", "/api/cofre");
-      if (Array.isArray(data)) { cofre = data; localStorage.setItem("pc_cofre", JSON.stringify(cofre)); }
-      else { cofre = JSON.parse(localStorage.getItem("pc_cofre") || "[]"); }
-    } catch { cofre = JSON.parse(localStorage.getItem("pc_cofre") || "[]"); }
-  } else {
-    // Modo demo — usa localStorage
-    try { pags = JSON.parse(localStorage.getItem("pc3") || "[]"); } catch { pags = []; }
-    if (!pags.length) { pags = [...DEMO]; savePags(); }
-    try { cofre = JSON.parse(localStorage.getItem("pc_cofre") || "[]"); } catch { cofre = []; }
-  }
-}
-
-function savePags()  { localStorage.setItem("pc3", JSON.stringify(pags)); }
-function saveCofre() { localStorage.setItem("pc_cofre", JSON.stringify(cofre)); }
-
-function getUserData() {
-  if (currentUser && !modoDemo) {
-    const local = (() => { try { return JSON.parse(localStorage.getItem("pc_user") || "{}"); } catch { return {}; }})();
-    return { ...local, nome: currentUser.nome || local.nome, email: currentUser.email || local.email, id: currentUser.id };
-  }
-  try { return JSON.parse(localStorage.getItem("pc_user") || "{}"); } catch { return {}; }
-}
-
-function saveUserData(u) {
-  localStorage.setItem("pc_user", JSON.stringify(u));
-  // Persiste no Worker (D1) também
-  if (currentUser?.id && !modoDemo) {
-    api("POST", "/api/user", {
-      nome:              u.nome,
-      email:             u.email,
-      plano:             u.plano || "free",
-      planoValido:       u.planoValido || null,
-      dataInicioPensao:  u.dataInicioPensao || null,
-      beneficiarios:     u.beneficiarios || [],
-      lembretes:         !!u.lembretes,
-      uploadsMes:        u.uploadsMes || 0,
-      ultimoMesUpload:   u.ultimoMesUpload || ""
-    }).catch(e => console.warn("Worker saveUser:", e));
-  }
-}
-
-function getDefaultUser() {
-  return {
-    nome: "Demo User", email: ["demo","pensaocheck.com"].join("@"),
-    plano: "free", planoValido: null,
-    dataCadastro: new Date().toISOString(),
-    lembretes: false, uploadsMes: 0, ultimoMesUpload: "",
-    valoresAnuais: [], beneficiarios: [{nome:"Ana", nascimento:"2018-05-10", inicio:"2020-01-01"}]
-  };
-}
-
-function podeUpload() {
-  const u = getUserData();
-  if (u.plano === "pro") {
-    if (u.planoValido && new Date(u.planoValido) > new Date()) return true;
-  }
-  const hoje = new Date();
-  const cadastro = new Date(u.dataCadastro || hoje);
-  const diasLivre = Math.floor((hoje - cadastro)/(1000*60*60*24));
-  if (diasLivre <= 90) return true;
-  const mesAtual = hoje.toISOString().slice(0,7);
-  if (u.ultimoMesUpload !== mesAtual) return true;
-  return (u.uploadsMes || 0) < 5;
-}
-
-function registrarUpload() {
-  const u = getUserData();
-  const mesAtual = new Date().toISOString().slice(0,7);
-  if (u.ultimoMesUpload !== mesAtual) { u.uploadsMes = 0; u.ultimoMesUpload = mesAtual; }
-  u.uploadsMes = (u.uploadsMes || 0) + 1;
-  saveUserData(u);
-}
-
-// ═══════════════════════════════════════
-//  AUTH — Google Identity Services (One Tap)
-// ═══════════════════════════════════════
-
-// Decodifica JWT do Google sem biblioteca externa
-function decodeGoogleJWT(token) {
-  try {
-    const payload = token.split(".")[1];
-    const decoded = atob(payload.replace(/-/g,"+").replace(/_/g,"/"));
-    return JSON.parse(decoded);
-  } catch { return null; }
-}
-
-// Chamado pelo Google após login bem-sucedido
-async function handleGoogleCredential(response) {
-  const payload = decodeGoogleJWT(response.credential);
-  if (!payload) { showToast("❌ Erro ao processar login Google"); return; }
-
-  currentUser = {
-    id:    payload.sub,       // Google user ID — usado como X-User-Id no Worker
-    nome:  payload.name,
-    email: payload.email,
-    foto:  payload.picture || ""
-  };
-  modoDemo = false;
-
-  // Salva sessão local para recargas de página
-  localStorage.setItem("pc_session", JSON.stringify(currentUser));
-
-  // Upsert no D1 via Worker
-  const u = getUserData();
-  if (!u.email) {
-    const novo = getDefaultUser();
-    novo.nome = currentUser.nome; novo.email = currentUser.email;
-    saveUserData(novo);
-  } else {
-    saveUserData({ ...u, nome: currentUser.nome, email: currentUser.email });
-  }
-
-  await goApp();
-}
-
-// Botão "Entrar com Google" — inicializa o Google One Tap
-function loginComGoogle() {
-  if (GOOGLE_CLIENT_ID.includes("SEU_GOOGLE")) {
-    // Client ID não configurado — avisa e entra em demo
-    showToast("⚠️ Google Client ID não configurado. Usando modo Demo.");
-    doLoginDemo();
-    return;
-  }
-  if (!window.google?.accounts?.id) {
-    showToast("⚠️ Google SDK não carregado. Tente novamente.");
-    return;
-  }
-  document.getElementById("login-buttons").classList.add("hidden");
-  document.getElementById("login-loading").classList.remove("hidden");
-
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback:  handleGoogleCredential,
-    auto_select: false
-  });
-  google.accounts.id.prompt(notification => {
-    // Se o One Tap for suprimido, mostra o botão renderizado
-    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-      document.getElementById("login-buttons").classList.remove("hidden");
-      document.getElementById("login-loading").classList.add("hidden");
-      // Renderiza botão Google padrão como fallback
-      const container = document.getElementById("google-btn-container");
-      if (container) {
-        google.accounts.id.renderButton(container, {
-          theme: "outline", size: "large", width: 320, text: "signin_with"
-        });
-      }
-    }
-  });
-}
-
-// Modo demo — sem autenticação real
-function doLoginDemo() {
-  modoDemo = true;
-  currentUser = null;
-  localStorage.removeItem("pc_session");
-  let u = getUserData();
-  if (!u.email) { u = getDefaultUser(); saveUserData(u); }
-  goApp();
-}
-
-// Logout
-function doLogout() {
-  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-  currentUser = null;
-  modoDemo    = false;
-  localStorage.removeItem("pc_session");
-  showScreen("login");
-  document.getElementById("login-buttons").classList.remove("hidden");
-  document.getElementById("login-loading").classList.add("hidden");
-}
-
-// stubs para compatibilidade
-function switchTab()  {}
-function doLogin()    {}
-function doCadastro() {}
-
-function doLogout() {
-  showScreen("login");
-  document.getElementById("l-email").value = "demo@pensaocheck.com";
-  document.getElementById("l-senha").value = "";
-}
-
-// ═══════════════════════════════════════
-//  NAVEGAÇÃO
-// ═══════════════════════════════════════
-function showScreen(s) {
-  document.querySelectorAll(".screen").forEach(x => x.classList.remove("active"));
-  document.getElementById("screen-"+s).classList.add("active");
-}
-
-// ALTERADO — goApp agora é async para aguardar load() assíncrono
-async function goApp() {
-  await load();
-  showScreen("app");
-  atualizarBadgePlano();
-  atualizarSbUser();
-  showView("dashboard");
-}
-
-function showView(v) {
-  document.querySelectorAll(".vw").forEach(x => x.classList.add("hidden"));
-  document.getElementById("view-"+v).classList.remove("hidden");
-  document.querySelectorAll(".sb-item").forEach(b => b.classList.remove("active"));
-  document.getElementById("nav-"+v)?.classList.add("active");
-  document.getElementById("view-title").textContent = VT[v] || "";
-  // PWA — sync bottom nav active state
-  document.querySelectorAll(".bn-item").forEach(b => b.classList.remove("active"));
-  document.getElementById("bn-"+v)?.classList.add("active");
-  closeSb();
-
-  if (v === "dashboard")  { load(); renderD(); renderBeneficiarios(); atualizarAlertaTopo(); renderPainelPendentes(); } // NOVO: +alerta +painel
-  if (v === "historico")  { load(); renderHF(); renderH(); }
-  if (v === "adicionar")  { load(); resetF(); renderBeneficiariosChecks(); }
-  if (v === "cofre")      { load(); renderCofre(); }
-  if (v === "relatorios") { load(); renderRelatorioPreview(); }
-  if (v === "config")     { loadConfig(); renderBeneficiariosConfig(); }
-  window.scrollTo(0,0);
-}
-
-function toggleSb() {
-  const sb = document.getElementById("sidebar");
-  const ov = document.getElementById("overlay");
-  sb.classList.toggle("open");
-  ov.classList.toggle("show");
-}
-function closeSb() {
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
-}
-
-// ═══════════════════════════════════════
-//  UTILS
-// ═══════════════════════════════════════
-function fmtMoeda(v) {
-  return "R$ " + Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-function fmtData(d) {
-  if (!d) return "—";
-  const [y,m,dd] = d.split("-");
-  return dd+"/"+m+"/"+y;
-}
-function mesNome(m) { return MESES[parseInt(m)] || m; }
-function mesRef(m,a) { return mesNome(m)+" "+a; }
-function uuid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
-
-function showToast(msg, dur=3000) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"), dur);
-}
-
-function atualizarBadgePlano() {
-  const u = getUserData();
-  const b = document.getElementById("hdr-badge");
-  if (u.plano === "pro" && u.planoValido && new Date(u.planoValido) > new Date()) {
-    b.textContent = "PRO ✓"; b.className = "badge-pro";
-  } else {
-    b.textContent = "FREE"; b.className = "badge-free";
-  }
-}
-
-function atualizarSbUser() {
-  const u = getUserData();
-  const nome = u.nome || "Demo";
-  document.getElementById("sb-nome").textContent = nome;
-  document.getElementById("sb-email").textContent = u.email || "";
-  document.getElementById("sb-avatar").textContent = nome[0].toUpperCase();
-}
-
-function extrairChavePix(texto) {
-  if (!texto) return "";
-  const patterns = [
-    /\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b/, /\b(\d{11})\b/,
-    /\b([\w.]+@[\w.]+)\b/, /\b(\+55\d{10,11})\b/,
-    /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i
-  ];
-  for (const p of patterns) { const m = texto.match(p); if (m) return m[1]||m[0]; }
-  return "";
-}
-
-function openModal(title, html) {
-  document.getElementById("modal-title").textContent = title;
-  document.getElementById("modal-body").innerHTML = html;
-  document.getElementById("modal").classList.add("show");
-  document.getElementById("overlay").classList.add("show");
-}
-function closeModal() {
-  document.getElementById("modal").classList.remove("show");
-  document.getElementById("overlay").classList.remove("show");
-}
-
-// ═══════════════════════════════════════
-//  DASHBOARD
-// ═══════════════════════════════════════
-function renderD() {
-  const u = getUserData();
-  // Alerta
-  const alertEl = document.getElementById("dash-alert");
-  const hoje = new Date();
-  const diasCadastro = Math.floor((hoje - new Date(u.dataCadastro||hoje))/(1000*60*60*24));
-  const diasRestantes = 90 - diasCadastro;
-  if (u.plano !== "pro" && diasRestantes <= 10 && diasRestantes > 0) {
-    alertEl.innerHTML = `<div class="alert-banner">⚠️ Seu período grátis expira em <strong>${diasRestantes} dias</strong>. Ative uma licença Pro para continuar sem limites.</div>`;
-  } else { alertEl.innerHTML = ""; }
-
-  // Cards
-  const anoAtual = hoje.getFullYear().toString();
-  const mesAtual = String(hoje.getMonth()+1).padStart(2,"0");
-  const pagosAno   = pags.filter(p=>p.anoReferencia===anoAtual&&p.status==="pago");
-  const totalAno   = pagosAno.reduce((s,p)=>s+Number(p.valor),0);
-  const pagosMes   = pags.filter(p=>p.anoReferencia===anoAtual&&p.mesReferencia===mesAtual&&p.status==="pago");
-  const totalMes   = pagosMes.reduce((s,p)=>s+Number(p.valor),0);
-  const pendentes  = pags.filter(p=>p.status==="pendente").length;
-  const proxMes    = String((hoje.getMonth()+2)%12||12).padStart(2,"0");
-  const proxAno    = hoje.getMonth()===11?(hoje.getFullYear()+1).toString():anoAtual;
-
-  document.getElementById("dash-cards").innerHTML = `
-    <div class="dash-card green"><div class="dc-label">Total Pago no Ano</div><div class="dc-val">${fmtMoeda(totalAno)}</div><div class="dc-sub">${pagosAno.length} pagamento(s)</div></div>
-    <div class="dash-card navy"><div class="dc-label">Mês Atual</div><div class="dc-val">${fmtMoeda(totalMes)}</div><div class="dc-sub">${mesNome(mesAtual)}</div></div>
-    <div class="dash-card orange"><div class="dc-label">Próximo Vencimento</div><div class="dc-val">${mesNome(proxMes)}</div><div class="dc-sub">${proxAno}</div></div>
-    <div class="dash-card gray"><div class="dc-label">Pendentes</div><div class="dc-val">${pendentes}</div><div class="dc-sub">pagamento(s)</div></div>`;
-
-  // Últimos 5
-  const ultimos = [...pags].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
-  const lastEl = document.getElementById("last-pags");
-  if (!ultimos.length) {
-    lastEl.innerHTML = `<div class="empty"><div class="empty-icon">📄</div><p>Nenhum pagamento ainda</p><button class="btn btn-g btn-sm" onclick="showView('adicionar')">+ Adicionar</button></div>`;
-  } else {
-    lastEl.innerHTML = ultimos.map(p=>`
-      <div class="lp-row">
-        <div><div class="lp-ref">${mesRef(p.mesReferencia,p.anoReferencia)}</div><div class="lp-date">${fmtData(p.dataPagamento)} · ${p.formaPagamento}</div></div>
-        <div style="display:flex;align-items:center;gap:12px">
-          <span class="lp-val">${fmtMoeda(p.valor)}</span>
-          <span class="${p.status==="pago"?"badge-pago":"badge-pendente"}">${p.status==="pago"?"✓ Pago":"⏳ Pendente"}</span>
-        </div>
-      </div>`).join("");
-  }
-}
-
-function renderBeneficiarios() {
-  const u = getUserData();
-  const benefs = u.beneficiarios || [];
-  const el = document.getElementById("benef-grid");
-  if (!benefs.length) {
-    el.innerHTML = `<div class="card" style="grid-column:1/-1;color:var(--g400);text-align:center;padding:24px">Nenhum beneficiário. Adicione em Configurações.</div>`;
-    return;
-  }
-  const anoAtual = new Date().getFullYear().toString();
-  const mesAtual = String(new Date().getMonth()+1).padStart(2,"0");
-  el.innerHTML = benefs.map(b=>{
-    const pgMes = pags.filter(p=>p.beneficiarios?.includes(b.nome)&&p.anoReferencia===anoAtual&&p.mesReferencia===mesAtual&&p.status==="pago").length;
-    return `<div class="benef-card">
-      <div class="benef-avatar">${b.nome[0].toUpperCase()}</div>
-      <div>
-        <div class="benef-name">${b.nome}</div>
-        <div class="benef-info">Nasc: ${fmtData(b.nascimento)}</div>
-        <div style="margin-top:6px">${pgMes>0?'<span class="badge-pago">✓ Pago esse mês</span>':'<span class="badge-pendente">⏳ Pendente</span>'}</div>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-// ═══════════════════════════════════════
-//  NOVO — ALERTA TOPO + PAINEL PENDENTES
-// ═══════════════════════════════════════
-
-// NOVO — calcula quantos meses desde dataInicioPensao até mês anterior ao atual
-//        que ainda não têm comprovante com status "pago" no localStorage
-function calcularPendentes() {
-  const u = getUserData();
-  const inicio = u.dataInicioPensao ? new Date(u.dataInicioPensao) : null;
-  const hoje = new Date();
-
-  // Se não tem data de início configurada, usa o primeiro pagamento registrado
-  let dataBase = inicio;
-  if (!dataBase && pags.length) {
-    const sorted = [...pags].sort((a,b)=>
-      (a.anoReferencia+a.mesReferencia).localeCompare(b.anoReferencia+b.mesReferencia));
-    const p = sorted[0];
-    dataBase = new Date(parseInt(p.anoReferencia), parseInt(p.mesReferencia)-1, 1);
-  }
-  if (!dataBase) return { faltando: 0, total: 0, mesesFaltando: [] };
-
-  // Monta lista de todos os meses entre dataBase e mês ANTERIOR ao atual (inclusive)
-  const mesesEsperados = [];
-  const cursor = new Date(dataBase.getFullYear(), dataBase.getMonth(), 1);
-  // limite = início do mês atual (não inclui o mês atual)
-  const limite = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  while (cursor < limite) {
-    mesesEsperados.push({
-      ano:  String(cursor.getFullYear()),
-      mes:  String(cursor.getMonth()+1).padStart(2,"0")
-    });
-    cursor.setMonth(cursor.getMonth()+1);
-  }
-
-  // Verifica quais têm pagamento "pago"
-  const mesesFaltando = mesesEsperados.filter(({ano,mes})=>
-    !pags.some(p=>p.anoReferencia===ano && p.mesReferencia===mes && p.status==="pago")
-  );
-
-  return { faltando: mesesFaltando.length, total: mesesEsperados.length, mesesFaltando };
-}
-
-// NOVO — atualiza o div #alerta-topo com cor dinâmica
-function atualizarAlertaTopo() {
-  const el = document.getElementById("alerta-topo");
-  if (!el) return;
-  const { faltando, mesesFaltando } = calcularPendentes();
-
-  el.className = "show";
-  el.classList.remove("verde","amarelo","vermelho");
-
-  if (faltando === 0) {
-    el.classList.add("verde");
-    el.innerHTML = `<span class="at-icon">✅</span><span class="at-msg">Você está em dia! Todos os comprovantes registrados.</span>`;
-  } else if (faltando === 1) {
-    el.classList.add("amarelo");
-    const m = mesesFaltando[0];
-    el.innerHTML = `<span class="at-icon">⚠️</span><span class="at-msg">Faltando <strong>1 comprovante</strong> do mês anterior (${mesNome(m.mes)} ${m.ano}). Regularize para evitar problemas. ⚠️</span>`;
-  } else if (faltando <= 3) {
-    el.classList.add("amarelo");
-    el.innerHTML = `<span class="at-icon">⚠️</span><span class="at-msg">Faltando <strong>${faltando} comprovante(s)</strong> do mês anterior e anteriores. Regularize em breve. ⚠️</span>`;
-  } else {
-    el.classList.add("vermelho");
-    el.innerHTML = `<span class="at-icon">🚨</span><span class="at-msg"><strong>Débitos pendentes!</strong> ${faltando} comprovante(s) em aberto. Risco de prisão, juros e multas. Regularize imediatamente! ⚠️</span>`;
-  }
-}
-
-// NOVO — renderiza painel de pendentes abaixo dos cards
-function renderPainelPendentes() {
-  const el = document.getElementById("painel-pendentes");
-  if (!el) return;
-  const { faltando, total } = calcularPendentes();
-  const ok = faltando === 0;
-
-  el.innerHTML = `
-    <div class="pendentes-card ${ok?"ok":""}">
-      <div class="pc-left">
-        <div class="pc-icon">${ok?"📋":"📌"}</div>
+    </div>
+
+    <!-- Steps -->
+    <div class="how-steps">
+      <div class="how-step reveal d1">
+        <div class="how-step-num">01</div>
+        <svg class="how-step-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         <div>
-          <div class="pc-title">${ok
-            ? "Comprovantes em dia"
-            : `Faltam <span style="color:var(--orange)">${faltando}</span> comprovante(s)`}</div>
-          <div class="pc-sub">${ok
-            ? `${total} de ${total} meses cobertos`
-            : `${total-faltando} de ${total} meses com comprovante`}</div>
+          <h3>Leitura Ativa e Cognitiva</h3>
+          <p>A IA gera perguntas reflexivas (PQ) e de múltipla escolha (CQ) a cada capítulo. Cada resposta acumula pontos de compreensão real — não de páginas lidas.</p>
         </div>
       </div>
-      ${!ok ? `<button class="btn btn-g btn-sm" onclick="showView('adicionar')">➕ Adicionar</button>` : ""}
-    </div>`;
-}
-
-// NOVO — abre modal de confirmação de zerar dados
-function abrirModalZerar() {
-  const m = document.getElementById("modal-zerar-wrap");
-  const ov = document.getElementById("overlay");
-  document.getElementById("zerar-senha").value = "";
-  document.getElementById("zerar-erro").textContent = "";
-  document.getElementById("btn-confirmar-zerar").disabled = true;
-  m.classList.add("show");
-  ov.classList.add("show");
-  setTimeout(()=>document.getElementById("zerar-senha").focus(), 100);
-}
-
-// NOVO — fecha modal de zerar dados
-function fecharModalZerar() {
-  document.getElementById("modal-zerar-wrap").classList.remove("show");
-  document.getElementById("overlay").classList.remove("show");
-}
-
-// NOVO — valida senha em tempo real
-function validarSenhaZerar() {
-  const val = document.getElementById("zerar-senha").value;
-  const u = getUserData();
-  // Aceita senha fixa 'reset123' ou senha do usuário (se houver) ou qualquer senha com ≥6 chars como fallback
-  const valida = val === "reset123" || (u.senha && val === u.senha) || val.length >= 6;
-  document.getElementById("btn-confirmar-zerar").disabled = !valida;
-  document.getElementById("zerar-erro").textContent = val.length > 0 && !valida
-    ? "Senha incorreta ou muito curta (mín. 6 caracteres)" : "";
-}
-
-// NOVO — efetua o zerar dados após confirmação
-function confirmarZerar() {
-  const val = document.getElementById("zerar-senha").value;
-  const u = getUserData();
-  const valida = val === "reset123" || (u.senha && val === u.senha) || val.length >= 6;
-  if (!valida) return;
-  fecharModalZerar();
-  localStorage.clear();
-  showToast("🗑️ Todos os dados foram apagados. Recarregando...", 2000);
-  setTimeout(()=>location.reload(), 2200);
-}
-
-// ═══════════════════════════════════════
-//  HISTÓRICO
-// ═══════════════════════════════════════
-function renderHF() {
-  const anos = [...new Set(pags.map(p=>p.anoReferencia))].sort((a,b)=>b-a);
-  const fano = document.getElementById("fano");
-  const cur = fano.value;
-  fano.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a=>`<option value="${a}"${a===cur?" selected":""}>${a}</option>`).join("");
-}
-
-function renderH() {
-  const ano = document.getElementById("fano").value;
-  const mes = document.getElementById("fmes").value;
-  const data = pags.filter(p=>(!ano||p.anoReferencia===ano)&&(!mes||p.mesReferencia===mes));
-  data.sort((a,b)=>(b.anoReferencia+b.mesReferencia).localeCompare(a.anoReferencia+a.mesReferencia));
-
-  const pagos = data.filter(p=>p.status==="pago").length;
-  const pend  = data.filter(p=>p.status==="pendente").length;
-  const total = data.reduce((s,p)=>s+Number(p.valor),0);
-
-  document.getElementById("hist-summary").innerHTML = `
-    <strong>${data.length}</strong> registros · ✅ <strong>${pagos}</strong> pagos · ⏳ <strong>${pend}</strong> pendentes
-    <span class="hist-total">${fmtMoeda(total)}</span>`;
-
-  const wrap = document.getElementById("hist-table-wrap");
-  if (!pags.length) {
-    wrap.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>Nenhum pagamento registrado ainda.</p><button class="btn btn-g btn-sm" onclick="showView('adicionar')">+ Adicionar</button></div>`;
-    return;
-  }
-  if (!data.length) {
-    wrap.innerHTML = `<div class="empty" style="padding:40px"><div class="empty-icon">🔍</div><p>Nenhum resultado para o filtro selecionado.</p></div>`;
-    return;
-  }
-
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Referência</th><th>Data Pag.</th><th>Valor</th><th>Forma</th><th>Chave PIX</th><th>Comprovante</th><th>Status</th><th></th>
-    </tr></thead>
-    <tbody>${data.map(p=>`
-      <tr>
-        <td style="font-weight:600">${mesRef(p.mesReferencia,p.anoReferencia)}</td>
-        <td>${fmtData(p.dataPagamento)}</td>
-        <td style="font-weight:700;color:var(--navy)">${fmtMoeda(p.valor)}</td>
-        <td>${p.formaPagamento}</td>
-        <td style="font-size:12px;color:var(--g500);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.chavePix||"—"}</td>
-        <td>${compBtn(p)}</td>
-        <td><span class="${p.status==="pago"?"badge-pago":"badge-pendente"}">${p.status==="pago"?"✓ Pago":"⏳ Pendente"}</span></td>
-        <td><button class="icon-btn" onclick="deletarPag('${p.id}')" title="Excluir">🗑️</button></td>
-      </tr>`).join("")}
-    </tbody></table>`;
-}
-
-function compBtn(p) {
-  if (!p.comprovante) return '<span style="color:var(--g300);font-size:12px">—</span>';
-  // NOVO — detecta se é URL Drive ou base64
-  const isDriveUrl = typeof p.comprovante === "string" && p.comprovante.startsWith("https://");
-  if (isDriveUrl) {
-    return `<div class="comp-btns">
-      <a class="comp-btn" href="${p.comprovante}" target="_blank" rel="noopener">👁 Ver</a>
-      <a class="comp-btn" href="${p.comprovante.replace('export=view','export=download')}" target="_blank" rel="noopener">⬇ Baixar</a>
-    </div>`;
-  }
-  if (p.comprovante === "pdf") {
-    return `<div class="comp-btns">
-      <button class="comp-btn" onclick="verComp('${p.id}')">👁 Ver</button>
-      <button class="comp-btn" onclick="baixarComp('${p.id}')">⬇ Baixar</button>
-    </div>`;
-  }
-  return `<div class="comp-btns">
-    <button class="comp-btn" onclick="verComp('${p.id}')">👁 Ver</button>
-    <button class="comp-btn" onclick="baixarComp('${p.id}')">⬇ Baixar</button>
-  </div>`;
-}
-
-function verComp(id) {
-  const p = pags.find(x=>x.id===id);
-  if (!p||!p.comprovante) return;
-  if (p.comprovante === "pdf") {
-    openModal("Comprovante — "+mesRef(p.mesReferencia,p.anoReferencia),
-      `<div class="preview-pdf">📄 <span>PDF: ${p.comprovanteNome||"comprovante.pdf"}</span></div><p style="font-size:12px;color:var(--g400);text-align:center;margin-top:8px">Download disponível</p>`);
-  } else {
-    openModal("Comprovante — "+mesRef(p.mesReferencia,p.anoReferencia),
-      `<img src="${p.comprovante}" alt="Comprovante" style="border-radius:8px;max-width:100%"/>`);
-  }
-}
-
-function baixarComp(id) {
-  const p = pags.find(x=>x.id===id);
-  if (!p||!p.comprovante) return;
-  const a = document.createElement("a");
-  if (p.comprovante === "pdf") {
-    showToast("⚠️ PDF armazenado como referência, sem dados binários");
-    return;
-  }
-  a.href = p.comprovante;
-  a.download = p.comprovanteNome || "comprovante.png";
-  a.click();
-}
-
-async function deletarPag(id) {
-  if (!confirm("Excluir este pagamento?")) return;
-  // ALTERADO — deleta no Worker (D1 + R2)
-  if (currentUser?.id && !modoDemo) {
-    await api("DELETE", `/api/pagamentos/${id}`);
-  }
-  pags = pags.filter(p => p.id !== id);
-  savePags();
-  renderH();
-  showToast("🗑️ Pagamento excluído");
-}
-
-// ═══════════════════════════════════════
-//  ADICIONAR
-// ═══════════════════════════════════════
-let compBase64 = null;
-let compNome   = "";
-let compTipo   = "";
-
-function resetF() {
-  const hoje = new Date();
-  document.getElementById("f-mes").value = String(hoje.getMonth()+1).padStart(2,"0");
-  document.getElementById("f-ano").value = hoje.getFullYear();
-  document.getElementById("f-data").value = hoje.toISOString().split("T")[0];
-  document.getElementById("f-valor").value = "";
-  document.getElementById("f-forma").value = "Pix";
-  document.getElementById("f-status").value = "pago";
-  document.getElementById("f-pix").value = "";
-  document.getElementById("f-obs").value = "";
-  document.getElementById("f-comp").value = "";
-  compBase64 = null; compNome = ""; compTipo = "";
-  document.getElementById("preview-container").classList.add("hidden");
-  document.getElementById("upload-container").classList.remove("hidden");
-  document.getElementById("btn-salvar").disabled = true;
-}
-
-function renderBeneficiariosChecks() {
-  const u = getUserData();
-  const benefs = u.beneficiarios || [];
-  const el = document.getElementById("benef-checks");
-  const countEl = document.getElementById("benef-checks-count");
-
-  if (!benefs.length) {
-    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--g50);border-radius:9px;border:1.5px dashed var(--g300)">
-      <span style="font-size:20px">👤</span>
-      <span style="font-size:13px;color:var(--g500)">Nenhum beneficiário cadastrado. <button class="link-btn" onclick="showView('config')">Adicionar em Configurações →</button></span>
-    </div>`;
-    if (countEl) countEl.textContent = "";
-    return;
-  }
-
-  if (countEl) countEl.textContent = "(" + benefs.length + " cadastrado" + (benefs.length>1?"s":"") + ")";
-
-  el.innerHTML = `
-    <div class="benef-checks-row">
-      <label class="benef-check benef-check-todos" id="lbl-todos">
-        <input type="checkbox" id="chk-todos" onchange="toggleTodos(this.checked)"/>
-        🔘 Todos os beneficiários
-      </label>
+      <div class="how-step reveal d2">
+        <div class="how-step-num">02</div>
+        <svg class="how-step-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div>
+          <h3>Sistema de Gates — Fim da Dispersão</h3>
+          <p>Se sua resposta for rasa, a IA te confronta e exige refinamento. O capítulo só é liberado após validação semântica. Leitura passiva bloqueada.</p>
+        </div>
+      </div>
+      <div class="how-step reveal d3">
+        <div class="how-step-num">03</div>
+        <svg class="how-step-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+        <div>
+          <h3>Score Semântico de Domínio</h3>
+          <p>Cada resposta soma pontos baseados em métricas de aprendizado real. Seu score de domínio cresce com a profundidade das reflexões — não com o tempo de leitura.</p>
+        </div>
+      </div>
+      <div class="how-step reveal d4" style="border-color:var(--gold-mid);background:var(--gold-dim)">
+        <div class="how-step-num" style="color:var(--gold-light)">04</div>
+        <svg class="how-step-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <div>
+          <h3>Compartilhamentos Luxuosos</h3>
+          <p>Com um clique no botão <strong style="color:var(--gold)">QUOTE</strong>, gere cards 9:16 para Stories ou cards de autoridade para LinkedIn com sua melhor resposta e barra de progresso dourada.</p>
+        </div>
+      </div>
     </div>
-    <div class="benef-checks-divider"><span>ou selecione individualmente</span></div>
-    <div class="benef-checks-row" id="benef-individual-row">
-      ${benefs.map(b=>`
-        <label class="benef-check">
-          <input type="checkbox" name="benef-check" value="${b.nome}" checked onchange="sincronizarTodos()"/>
-          <span style="font-size:16px">${getAvatarLetter(b.nome)}</span>
-          ${b.nome}
-        </label>`).join("")}
-    </div>`;
+  </div>
+</section>
 
-  // Inicializa: se todos marcados, marca o "Todos"
-  sincronizarTodos();
-}
+<!-- ─── TESTIMONIALS ─── -->
+<section class="testimonials">
+  <div class="blob-bg"></div>
 
-function getAvatarLetter(nome) {
-  const avatars = ["👦","👧","👨","👩","🧒","👶","🧑"];
-  const idx = nome.charCodeAt(0) % avatars.length;
-  return avatars[idx];
-}
+  
 
-function toggleTodos(checked) {
-  document.querySelectorAll('input[name="benef-check"]').forEach(c => { c.checked = checked; });
-  // Atualiza estilo do label "Todos"
-  const lbl = document.getElementById("lbl-todos");
-  if (lbl) lbl.style.opacity = "1";
-}
+  <div class="section-label reveal" style="justify-content:center">O que nossos leitores dizem</div>
+  <h2 class="section-h reveal" style="text-align:center;max-width:500px;margin:0 auto">Retenção real. <em>Resultados visíveis.</em></h2>
 
-function sincronizarTodos() {
-  const todos = document.querySelectorAll('input[name="benef-check"]');
-  const marcados = document.querySelectorAll('input[name="benef-check"]:checked');
-  const chkTodos = document.getElementById("chk-todos");
-  if (!chkTodos) return;
-  if (marcados.length === todos.length && todos.length > 0) {
-    chkTodos.checked = true;
-    chkTodos.indeterminate = false;
-  } else if (marcados.length === 0) {
-    chkTodos.checked = false;
-    chkTodos.indeterminate = false;
-  } else {
-    chkTodos.checked = false;
-    chkTodos.indeterminate = true; // estado parcial
-  }
-}
+  <div class="testi-grid" style="margin-top:1.2rem">
 
-// ALTERADO — handleUpload usa Worker R2
-function handleUpload(ev) {
-  const file = ev.target.files[0];
-  if (!file) return;
-  if (file.size > 10*1024*1024) return showToast("⚠️ Arquivo muito grande (máx 10MB)");
-  if (!podeUpload()) return showToast("⚠️ Limite de uploads atingido. Ative o plano Pro.");
-
-  compNome = file.name;
-  compTipo = file.type.includes("pdf") ? "pdf" : "imagem";
-  const pix = extrairChavePix(file.name);
-  if (pix) document.getElementById("f-pix").value = pix;
-
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const base64Local = e.target.result;
-
-    // Preview imediato
-    if (compTipo === "pdf") {
-      document.getElementById("preview-area").innerHTML =
-        `<div class="preview-pdf">📄 <span>${file.name}</span></div>
-         <button class="preview-clear" onclick="clearComp()">✕</button>`;
-    } else {
-      document.getElementById("preview-area").innerHTML =
-        `<img src="${base64Local}" alt="Preview"/>
-         <button class="preview-clear" onclick="clearComp()">✕</button>`;
-    }
-    document.getElementById("preview-container").classList.remove("hidden");
-    document.getElementById("upload-container").classList.add("hidden");
-
-    // Tenta upload R2 via Worker
-    const driveEl   = document.getElementById("upload-progress");
-    const driveText = document.getElementById("upload-progress-text");
-
-    if (currentUser?.id && !modoDemo) {
-      driveEl.classList.add("show");
-      driveText.textContent = "Enviando para Cloudflare R2…";
-      const url = await uploadArquivo(file);
-      driveEl.classList.remove("show");
-      compBase64 = url || base64Local; // URL R2 ou base64 como fallback
-      if (url) driveText.textContent = "✅ Salvo na nuvem";
-    } else {
-      compBase64 = base64Local; // modo demo
-    }
-    document.getElementById("btn-salvar").disabled = false;
-  };
-  reader.readAsDataURL(file);
-}
-
-function clearComp() {
-  compBase64 = null; compNome = ""; compTipo = "";
-  document.getElementById("f-comp").value = "";
-  document.getElementById("preview-container").classList.add("hidden");
-  document.getElementById("upload-container").classList.remove("hidden");
-  document.getElementById("btn-salvar").disabled = true;
-}
-
-async function salvarPagamento() {
-  const mes   = document.getElementById("f-mes").value;
-  const ano   = document.getElementById("f-ano").value;
-  const data  = document.getElementById("f-data").value;
-  const valor = parseFloat(document.getElementById("f-valor").value);
-  if (!mes||!ano||!data||isNaN(valor)||valor<=0) return showToast("⚠️ Preencha todos os campos obrigatórios");
-  if (!compBase64) return showToast("⚠️ Anexe o comprovante para salvar");
-
-  const checks = document.querySelectorAll('input[name="benef-check"]:checked');
-  const benefs = [...checks].map(c=>c.value);
-
-  const pag = {
-    id:              uuid(), valor,
-    dataPagamento:   data, mesReferencia: mes, anoReferencia: ano,
-    formaPagamento:  document.getElementById("f-forma").value,
-    observacao:      document.getElementById("f-obs").value,
-    status:          document.getElementById("f-status").value,
-    comprovante:     compBase64, comprovanteNome: compNome,
-    chavePix:        document.getElementById("f-pix").value,
-    beneficiarios:   benefs, isExtra: false,
-    createdAt:       new Date().toISOString()
-  };
-
-  // ALTERADO — salva no Worker (D1) se autenticado
-  if (currentUser?.id && !modoDemo) {
-    const res = await api("POST", "/api/pagamentos", pag);
-    if (res?.error) console.warn("Worker insert pagamento:", res.error);
-  }
-
-  pags.push(pag);
-  savePags();
-  registrarUpload();
-  showToast("✅ Pagamento salvo com sucesso!");
-  setTimeout(()=>showView("historico"), 1800);
-}
-
-// ═══════════════════════════════════════
-//  COFRE
-// ═══════════════════════════════════════
-// ALTERADO — cofre upload usa Worker R2
-let cofreFileObj = null;
-
-function handleCofreUpload(ev) {
-  const file = ev.target.files[0];
-  if (!file) return;
-  if (file.size > 10*1024*1024) return showToast("⚠️ Arquivo muito grande (máx 10MB)");
-  cofreNome    = file.name;
-  cofreTipo    = file.type.includes("pdf") ? "pdf" : "imagem";
-  cofreFileObj = file;
-  document.getElementById("cv-file-name").textContent = file.name;
-  const reader = new FileReader();
-  reader.onload = e => { cofreFile = e.target.result; };
-  reader.readAsDataURL(file);
-}
-
-async function salvarCofre() {
-  if (!podeUpload()) return showToast("⚠️ Limite de uploads atingido. Ative o plano Pro.");
-  const cat  = document.getElementById("cv-cat").value;
-  const desc = document.getElementById("cv-desc").value.trim();
-  if (!desc) return showToast("⚠️ Informe uma descrição");
-  if (!cofreFile && !cofreFileObj) return showToast("⚠️ Selecione um arquivo");
-
-  // ALTERADO — tenta upload R2 via Worker
-  let arquivoUrl = cofreFile; // base64 como fallback
-  if (currentUser?.id && cofreFileObj && !modoDemo) {
-    showToast("⏳ Enviando para Cloudflare R2…", 5000);
-    const url = await uploadArquivo(cofreFileObj);
-    if (url) arquivoUrl = url;
-  }
-
-  const doc = {
-    id: uuid(), categoria: cat, descricao: desc,
-    arquivo: arquivoUrl, nomeArquivo: cofreNome,
-    tipo: cofreTipo, criadoEm: new Date().toISOString()
-  };
-
-  // ALTERADO — salva no Worker (D1)
-  if (currentUser?.id && !modoDemo) {
-    const res = await api("POST", "/api/cofre", doc);
-    if (res?.error) console.warn("Worker insert cofre:", res.error);
-  }
-
-  cofre.push(doc);
-  saveCofre();
-  registrarUpload();
-  document.getElementById("cv-desc").value = "";
-  document.getElementById("cv-file").value = "";
-  document.getElementById("cv-file-name").textContent = "Clique para selecionar arquivo";
-  cofreFile = null; cofreNome = ""; cofreTipo = ""; cofreFileObj = null;
-  showToast("✅ Documento salvo no cofre!");
-  renderCofre();
-}
-
-function renderCofre() {
-  const grid = document.getElementById("cofre-grid");
-  const emptyEl = document.getElementById("cofre-empty");
-  if (!cofre.length) {
-    grid.innerHTML = "";
-    emptyEl.innerHTML = `<div class="empty"><div class="empty-icon">🗂️</div><p>Cofre vazio. Adicione documentos importantes.</p></div>`;
-    return;
-  }
-  emptyEl.innerHTML = "";
-  const catLabel = {comprovante:"Comprovante",juridico:"Jurídico",outro:"Outro"};
-  grid.innerHTML = cofre.map(c=>`
-    <div class="cofre-card">
-      <div class="cofre-thumb">
-        ${c.tipo==="imagem"?`<img src="${c.arquivo}" alt="${c.descricao}"/>`:
-          `<span style="font-size:36px">📄</span>`}
+    <div class="testi-card reveal d1">
+      <div class="testi-photo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ic2cxIiBjeD0iNTAlIiBjeT0iMzUlIiByPSI1MCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjYzk5NTZhIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzllNmI0NSIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ic2cyIiBjeD0iNTAlIiBjeT0iMCUiIHI9IjgwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzZDJjMWUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMWExMDA4Ii8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGNsaXBQYXRoIGlkPSJzYyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiLz48L2NsaXBQYXRoPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIGZpbGw9IiMxYTI1NDAiLz4KICA8ZyBjbGlwLXBhdGg9InVybCgjc2MpIj4KICAgIDwhLS0gc2hpcnQvYm9keSAtLT4KICAgIDxlbGxpcHNlIGN4PSIzMiIgY3k9IjcyIiByeD0iMjIiIHJ5PSIxNiIgZmlsbD0iIzJkNGE4YSIvPgogICAgPCEtLSBuZWNrIC0tPgogICAgPHJlY3QgeD0iMjciIHk9IjQyIiB3aWR0aD0iMTAiIGhlaWdodD0iMTQiIHJ4PSI0IiBmaWxsPSIjYzk5NTZhIi8+CiAgICA8IS0tIGhlYWQgLS0+CiAgICA8ZWxsaXBzZSBjeD0iMzIiIGN5PSIzMiIgcng9IjE2IiByeT0iMTgiIGZpbGw9InVybCgjc2cxKSIvPgogICAgPCEtLSBoYWlyIC0tPgogICAgPGVsbGlwc2UgY3g9IjMyIiBjeT0iMTciIHJ4PSIxNiIgcnk9IjgiIGZpbGw9InVybCgjc2cyKSIvPgogICAgPHJlY3QgeD0iMTYiIHk9IjE2IiB3aWR0aD0iNCIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiMzZDJjMWUiLz4KICAgIDxyZWN0IHg9IjQ0IiB5PSIxNiIgd2lkdGg9IjQiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjM2QyYzFlIi8+CiAgICA8IS0tIGV5ZXMgLS0+CiAgICA8ZWxsaXBzZSBjeD0iMjUiIGN5PSIzMSIgcng9IjMiIHJ5PSIyLjUiIGZpbGw9IndoaXRlIi8+CiAgICA8ZWxsaXBzZSBjeD0iMzkiIGN5PSIzMSIgcng9IjMiIHJ5PSIyLjUiIGZpbGw9IndoaXRlIi8+CiAgICA8Y2lyY2xlIGN4PSIyNiIgY3k9IjMxIiByPSIyIiBmaWxsPSIjM2QyYzFlIi8+CiAgICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjMxIiByPSIyIiBmaWxsPSIjM2QyYzFlIi8+CiAgICA8Y2lyY2xlIGN4PSIyNi44IiBjeT0iMzAuMiIgcj0iMC43IiBmaWxsPSJ3aGl0ZSIvPgogICAgPGNpcmNsZSBjeD0iNDAuOCIgY3k9IjMwLjIiIHI9IjAuNyIgZmlsbD0id2hpdGUiLz4KICAgIDwhLS0gZXllYnJvd3MgLS0+CiAgICA8cGF0aCBkPSJNMjIgMjcgUTI1IDI1LjUgMjggMjciIHN0cm9rZT0iIzVhM2MyYSIgc3Ryb2tlLXdpZHRoPSIxLjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTM2IDI3IFEzOSAyNS41IDQyIDI3IiBzdHJva2U9IiM1YTNjMmEiIHN0cm9rZS13aWR0aD0iMS4yIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwhLS0gbm9zZSAtLT4KICAgIDxwYXRoIGQ9Ik0zMSAzNSBRMzIgMzggMzMgMzUiIHN0cm9rZT0iI2IwNzg1MCIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwhLS0gc21pbGUgLS0+CiAgICA8cGF0aCBkPSJNMjcgNDEgUTMyIDQ0LjUgMzcgNDEiIHN0cm9rZT0iI2IwNzg1MCIgc3Ryb2tlLXdpZHRoPSIxLjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPCEtLSBzdWJ0bGUgYmVhcmQvc3R1YmJsZSBzaGFkb3cgLS0+CiAgICA8ZWxsaXBzZSBjeD0iMzIiIGN5PSI0MCIgcng9IjEwIiByeT0iNCIgZmlsbD0icmdiYSg5MCw2MCw0MiwwLjE1KSIvPgogIDwvZz4KPC9zdmc+" alt="Artur S." width="64" height="64"/></div>
+      <div class="testi-stars">
+        <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
       </div>
-      <div class="cofre-info">
-        <div class="cofre-cat">${catLabel[c.categoria]||c.categoria}</div>
-        <div class="cofre-desc" title="${c.descricao}">${c.descricao}</div>
-        <div class="cofre-actions">
-          <button class="btn btn-outline btn-sm" onclick="verCofre('${c.id}')">👁</button>
-          <button class="btn btn-outline btn-sm" onclick="baixarCofre('${c.id}')">⬇</button>
-          <button class="btn btn-r btn-sm" onclick="deletarCofre('${c.id}')">🗑️</button>
+      <div class="testi-quote">"Perfeito para concurso."</div>
+      <p class="testi-text">Finalmente sinto que estou aprendendo de verdade após cada capítulo. O sistema de perguntas é agressivo do bom jeito — não deixa você sair sem entender.</p>
+      <div class="testi-divider"></div>
+      <div class="testi-name">Artur S.</div>
+      <div class="testi-role">Estudante para concurso público</div>
+    </div>
+
+    <div class="testi-card reveal d2" style="border-color:rgba(212,175,55,0.3);background:rgba(212,175,55,0.03)">
+      <div class="testi-photo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZWcxIiBjeD0iNTAlIiBjeT0iMzUlIiByPSI1MCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZDRhMzczIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2E4Nzg1MCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZWcyIiBjeD0iNTAlIiBjeT0iMCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMyYzFhMTAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMTUwYzA4Ii8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGNsaXBQYXRoIGlkPSJlYyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiLz48L2NsaXBQYXRoPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIGZpbGw9IiMxYTI1NDAiLz4KICA8ZyBjbGlwLXBhdGg9InVybCgjZWMpIj4KICAgIDwhLS0gYmxhemVyL3Nob3VsZGVycyAtLT4KICAgIDxlbGxpcHNlIGN4PSIzMiIgY3k9IjcyIiByeD0iMjYiIHJ5PSIxNiIgZmlsbD0iIzFlM2E1ZiIvPgogICAgPCEtLSBjb2xsYXIvc2hpcnQgLS0+CiAgICA8cGF0aCBkPSJNMjQgNTQgUTMyIDU4IDQwIDU0IEw0MiA3MiBMMjIgNzIgWiIgZmlsbD0iI2YwZWRlOCIvPgogICAgPCEtLSBuZWNrIC0tPgogICAgPHJlY3QgeD0iMjcuNSIgeT0iNDMiIHdpZHRoPSI5IiBoZWlnaHQ9IjE0IiByeD0iNCIgZmlsbD0iI2Q0YTM3MyIvPgogICAgPCEtLSBoZWFkIC0tPgogICAgPGVsbGlwc2UgY3g9IjMyIiBjeT0iMzEiIHJ4PSIxNSIgcnk9IjE3IiBmaWxsPSJ1cmwoI2VnMSkiLz4KICAgIDwhLS0gaGFpciBsb25nIC0tPgogICAgPGVsbGlwc2UgY3g9IjMyIiBjeT0iMTYiIHJ4PSIxNSIgcnk9IjciIGZpbGw9InVybCgjZWcyKSIvPgogICAgPHJlY3QgeD0iMTciIHk9IjE1IiB3aWR0aD0iNSIgaGVpZ2h0PSIyNiIgcng9IjMiIGZpbGw9IiMyYzFhMTAiLz4KICAgIDxyZWN0IHg9IjQyIiB5PSIxNSIgd2lkdGg9IjUiIGhlaWdodD0iMjYiIHJ4PSIzIiBmaWxsPSIjMmMxYTEwIi8+CiAgICA8IS0tIGhpZ2hsaWdodCAtLT4KICAgIDxlbGxpcHNlIGN4PSIyOCIgY3k9IjE0IiByeD0iNCIgcnk9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xMikiLz4KICAgIDwhLS0gZXllcyAtLT4KICAgIDxlbGxpcHNlIGN4PSIyNS41IiBjeT0iMzAiIHJ4PSIzIiByeT0iMi41IiBmaWxsPSJ3aGl0ZSIvPgogICAgPGVsbGlwc2UgY3g9IjM4LjUiIGN5PSIzMCIgcng9IjMiIHJ5PSIyLjUiIGZpbGw9IndoaXRlIi8+CiAgICA8Y2lyY2xlIGN4PSIyNi4yIiBjeT0iMzAiIHI9IjIuMiIgZmlsbD0iIzJjMWExMCIvPgogICAgPGNpcmNsZSBjeD0iMzkuMiIgY3k9IjMwIiByPSIyLjIiIGZpbGw9IiMyYzFhMTAiLz4KICAgIDxjaXJjbGUgY3g9IjI3IiBjeT0iMjkuMiIgcj0iMC43IiBmaWxsPSJ3aGl0ZSIvPgogICAgPGNpcmNsZSBjeD0iNDAiIGN5PSIyOS4yIiByPSIwLjciIGZpbGw9IndoaXRlIi8+CiAgICA8IS0tIGxhc2hlcyAtLT4KICAgIDxwYXRoIGQ9Ik0yMi41IDI3LjUgUTI1LjUgMjYgMjguNSAyNy41IiBzdHJva2U9IiMxYTBmMDgiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIvPgogICAgPHBhdGggZD0iTTM1LjUgMjcuNSBRMzguNSAyNiA0MS41IDI3LjUiIHN0cm9rZT0iIzFhMGYwOCIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIi8+CiAgICA8IS0tIG5vc2UgLS0+CiAgICA8cGF0aCBkPSJNMzEgMzQuNSBRMzIgMzcgMzMgMzQuNSIgc3Ryb2tlPSIjYjA4MDYwIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPCEtLSBsaXBzIC0tPgogICAgPHBhdGggZD0iTTI3LjUgNDAuNSBRMzIgNDQgMzYuNSA0MC41IiBzdHJva2U9IiNjMDYwNTAiIHN0cm9rZS13aWR0aD0iMS40IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik0yNy41IDQwLjUgUTMyIDQyIDM2LjUgNDAuNSIgZmlsbD0icmdiYSgxOTIsOTAsODAsMC4zKSIvPgogIDwvZz4KPC9zdmc+" alt="Fernanda L." width="64" height="64"/></div>
+      <div class="testi-stars">
+        <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+      </div>
+      <div class="testi-quote">"Melhor app de leitura, me ajuda muito focar e lembrar do que eu leio."</div>
+      <p class="testi-text">Tinha o hábito de ler sem absorver nada. Agora o StepBook me obriga a pensar. Meu score de domínio saiu de 40% para 89% em duas semanas.</p>
+      <div class="testi-divider"></div>
+      <div class="testi-name">Fernanda L.</div>
+      <div class="testi-role">Executiva — Requalificação Profissional</div>
+    </div>
+
+    <div class="testi-card reveal d3">
+      <div class="testi-photo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iamcxIiBjeD0iNTAlIiBjeT0iMzUlIiByPSI1MCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjN2E0YTJhIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzRhMmMxNCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iamcyIiBjeD0iNTAlIiBjeT0iMzAlIiByPSI3MCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMWMxMDA4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzBhMDYwNCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxjbGlwUGF0aCBpZD0iamMiPjxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjMyIi8+PC9jbGlwUGF0aD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMWEyNTQwIi8+CiAgPGcgY2xpcC1wYXRoPSJ1cmwoI2pjKSI+CiAgICA8IS0tIG91dGZpdCAtLT4KICAgIDxlbGxpcHNlIGN4PSIzMiIgY3k9IjcyIiByeD0iMjQiIHJ5PSIxNiIgZmlsbD0iI2M4OTAyYSIvPgogICAgPCEtLSBuZWNrIC0tPgogICAgPHJlY3QgeD0iMjcuNSIgeT0iNDMiIHdpZHRoPSI5IiBoZWlnaHQ9IjE0IiByeD0iNCIgZmlsbD0iIzdhNGEyYSIvPgogICAgPCEtLSBoZWFkIC0tPgogICAgPGVsbGlwc2UgY3g9IjMyIiBjeT0iMzEiIHJ4PSIxNSIgcnk9IjE3IiBmaWxsPSJ1cmwoI2pnMSkiLz4KICAgIDwhLS0gbmF0dXJhbCBoYWlyIChiaWcgY3VybHkpIC0tPgogICAgPGVsbGlwc2UgY3g9IjMyIiBjeT0iMTgiIHJ4PSIyMCIgcnk9IjE1IiBmaWxsPSJ1cmwoI2pnMikiLz4KICAgIDwhLS0gaGFpciB2b2x1bWUgbGVmdCAtLT4KICAgIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjQiIHI9IjEwIiBmaWxsPSIjMTUwYTA0Ii8+CiAgICA8IS0tIGhhaXIgdm9sdW1lIHJpZ2h0IC0tPgogICAgPGNpcmNsZSBjeD0iNDciIGN5PSIyNCIgcj0iMTAiIGZpbGw9IiMxNTBhMDQiLz4KICAgIDwhLS0gaGFpciB0b3Agdm9sdW1lIC0tPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIxMiIgcj0iMTIiIGZpbGw9IiMxYzEwMDgiLz4KICAgIDwhLS0gZm9yZWhlYWQgaGlnaGxpZ2h0IC0tPgogICAgPGVsbGlwc2UgY3g9IjMyIiBjeT0iMjIiIHJ4PSI4IiByeT0iNCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA0KSIvPgogICAgPCEtLSBleWVzIC0tPgogICAgPGVsbGlwc2UgY3g9IjI1LjUiIGN5PSIzMSIgcng9IjMuMiIgcnk9IjIuNSIgZmlsbD0id2hpdGUiLz4KICAgIDxlbGxpcHNlIGN4PSIzOC41IiBjeT0iMzEiIHJ4PSIzLjIiIHJ5PSIyLjUiIGZpbGw9IndoaXRlIi8+CiAgICA8Y2lyY2xlIGN4PSIyNi4yIiBjeT0iMzEiIHI9IjIuMyIgZmlsbD0iIzE1MGEwNCIvPgogICAgPGNpcmNsZSBjeD0iMzkuMiIgY3k9IjMxIiByPSIyLjMiIGZpbGw9IiMxNTBhMDQiLz4KICAgIDxjaXJjbGUgY3g9IjI3IiBjeT0iMzAuMiIgcj0iMC43IiBmaWxsPSJ3aGl0ZSIvPgogICAgPGNpcmNsZSBjeD0iNDAiIGN5PSIzMC4yIiByPSIwLjciIGZpbGw9IndoaXRlIi8+CiAgICA8IS0tIGV5ZWJyb3dzIC0tPgogICAgPHBhdGggZD0iTTIyLjUgMjcuNSBRMjUuNSAyNi4yIDI4LjUgMjcuNSIgc3Ryb2tlPSIjMWMxMDA4IiBzdHJva2Utd2lkdGg9IjEuNCIgZmlsbD0ibm9uZSIvPgogICAgPHBhdGggZD0iTTM1LjUgMjcuNSBRMzguNSAyNi4yIDQxLjUgMjcuNSIgc3Ryb2tlPSIjMWMxMDA4IiBzdHJva2Utd2lkdGg9IjEuNCIgZmlsbD0ibm9uZSIvPgogICAgPCEtLSBub3NlIGJyb2FkIC0tPgogICAgPHBhdGggZD0iTTI5IDM1IFEzMiAzOC41IDM1IDM1IiBzdHJva2U9IiM1YTMwMTAiIHN0cm9rZS13aWR0aD0iMS4yIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxlbGxpcHNlIGN4PSIzMCIgY3k9IjM1LjUiIHJ4PSIxLjUiIHJ5PSIxIiBmaWxsPSJyZ2JhKDUwLDI1LDEwLDAuMykiLz4KICAgIDxlbGxpcHNlIGN4PSIzNCIgY3k9IjM1LjUiIHJ4PSIxLjUiIHJ5PSIxIiBmaWxsPSJyZ2JhKDUwLDI1LDEwLDAuMykiLz4KICAgIDwhLS0gc21pbGUgLS0+CiAgICA8cGF0aCBkPSJNMjcgNDEuNSBRMzIgNDUuNSAzNyA0MS41IiBzdHJva2U9IiM4YTUwMzAiIHN0cm9rZS13aWR0aD0iMS40IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwhLS0gdGVldGggaGludCAtLT4KICAgIDxwYXRoIGQ9Ik0yOC41IDQyIFEzMiA0NCAzNS41IDQyIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuNSkiLz4KICA8L2c+Cjwvc3ZnPg==" alt="Joana C." width="64" height="64"/></div>
+      <div class="testi-stars">
+        <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+      </div>
+      <div class="testi-quote">"Eu sempre quis compartilhar quotes. Agora fica lindo e automático."</div>
+      <p class="testi-text">Os cards gerados são incríveis. Todo post que faço com minha barra de progresso dourada gera engajamento absurdo. Parece que saiu de uma revista de luxo.</p>
+      <div class="testi-divider"></div>
+      <div class="testi-name">Joana C.</div>
+      <div class="testi-role">Empreendedora Digital</div>
+    </div>
+
+  </div>
+
+  
+</section>
+
+<!-- ─── CTA STRIP ─── -->
+<section class="cta-strip" id="planos">
+  <div class="blob"></div>
+  <h2 class="reveal">Leia de graça até <strong>1 livro completo.</strong> <span class="lightning">⚡</span></h2>
+  <p class="cta-strip-sub reveal">Atualize para Pro por apenas R$6,99 via Pix</p>
+  <a href="/app" class="btn-primary reveal" style="margin:0 auto;display:inline-flex">Começar Grátis →</a>
+</section>
+
+<!-- ─── PLANS ─── -->
+<section class="plans">
+  <div class="plans-wrap reveal">
+    <!-- FREE -->
+    <div class="plan free">
+      <div class="plan-name">Free</div>
+      <p class="plan-tagline">Para conhecer o método</p>
+      <div class="plan-price-block">
+        <div class="plan-price">R$0</div>
+        <p class="plan-price-note">Sempre gratuito, sem cartão</p>
+      </div>
+      <div class="plan-features">
+        <div class="plan-feat"><span class="check">◆</span> Leia 1 livro completo</div>
+        <div class="plan-feat"><span class="check">◆</span> Até 10 capítulos grátis</div>
+        <div class="plan-feat"><span class="check">◆</span> Perguntas básicas de compreensão</div>
+        <div class="plan-feat dim"><span class="check">◆</span> IA de confronto profundo</div>
+        <div class="plan-feat dim"><span class="check">◆</span> Score semântico avançado</div>
+        <div class="plan-feat dim"><span class="check">◆</span> Cards para Stories e LinkedIn</div>
+      </div>
+      <a href="/app" class="plan-btn outline">Começar Grátis</a>
+      <p style="font-size:0.68rem;color:var(--gray);margin-top:0.8rem;text-align:center">Sem compromisso · Cancele quando quiser</p>
+    </div>
+
+    <!-- PRO -->
+    <div class="plan pro">
+      <div class="plan-badge">Mais Popular</div>
+      <div class="plan-name">Pro</div>
+      <p class="plan-tagline">Para quem leva o aprendizado a sério</p>
+      <div class="plan-price-block">
+        <div class="plan-price">R$6,99</div>
+        <p class="plan-price-note">por 30 dias · via Pix · sem assinatura</p>
+      </div>
+      <div class="plan-features">
+        <div class="plan-feat"><span class="check">◆</span> <strong>Livros ilimitados</strong></div>
+        <div class="plan-feat"><span class="check">◆</span> Leitura completa, todos os capítulos</div>
+        <div class="plan-feat"><span class="check">◆</span> IA de confronto profundo</div>
+        <div class="plan-feat"><span class="check">◆</span> Score semântico de domínio</div>
+        <div class="plan-feat"><span class="check">◆</span> <strong style="color:var(--white)">Cards para Stories e LinkedIn</strong></div>
+        <div class="plan-feat"><span class="check">◆</span> Histórico completo de progresso</div>
+      </div>
+      <a href="/app" class="plan-btn gold">Assinar via Pix ⚡</a>
+      <p style="font-size:0.68rem;color:var(--gray);margin-top:0.8rem;text-align:center">Pagamento único · Acesso imediato</p>
+    </div>
+  </div>
+  <p class="pix-note reveal">🔒 Pagamento 100% seguro via <strong>Pix</strong> · Processado pelo Mercado Pago · Acesso em segundos</p>
+</section>
+
+<!-- ─── QUOTE CARDS SECTION ─── -->
+<section class="quote-hero">
+  <div class="blob-q blob"></div>
+  <div class="quote-eyebrow reveal">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Botão QUOTE
+  </div>
+  <h2 class="quote-h reveal">Gere cartões compartilháveis <strong>irresistíveis.</strong> <span class="flash">⚡</span></h2>
+  <p class="quote-lead reveal">Compartilhe frases impactantes que <strong style="color:var(--white)">geram likes</strong> nas suas redes sociais. Com um toque, crie um cartão elegante com seu score de domínio, a melhor resposta e link para o StepBook.</p>
+
+  <div class="cards-stage">
+
+    <!-- Stories card 1 -->
+    <div class="share-card sc-stories reveal d1">
+      <div class="sc-logo">
+        <img src="https://i.ibb.co/Xkfz5QKL/sua-logo-stepbook.png" alt="StepBook" style="height:14px;width:auto;object-fit:contain;filter:drop-shadow(0 0 4px rgba(212,175,55,0.4));" />
+        <span class="sc-logo-dot"></span>
+      </div>
+      <div class="sc-quote-mark">"</div>
+      <div class="sc-quote-text">A narrativa expõe a vulnerabilidade como força — não como fraqueza. A exposição cria a conexão genuína que transforma líderes.</div>
+      <div class="sc-footer">
+        <div class="sc-meta">
+          <span class="sc-chapter">Brené Brown · Cap. 7</span>
+          <span class="sc-score">94%</span>
+        </div>
+        <div class="sc-bar-track">
+          <div class="sc-bar-fill" style="width:94%"></div>
         </div>
       </div>
-    </div>`).join("");
-}
+    </div>
 
-function verCofre(id) {
-  const c = cofre.find(x=>x.id===id);
-  if (!c) return;
-  if (c.tipo==="imagem") openModal(c.descricao,`<img src="${c.arquivo}" style="max-width:100%;border-radius:8px"/>`);
-  else openModal(c.descricao,`<div class="preview-pdf" style="padding:30px">📄 <span>${c.nomeArquivo}</span></div>`);
-}
+    <!-- LinkedIn card -->
+    <div class="share-card sc-linkedin reveal">
+      <div class="sc-logo">
+        <img src="https://i.ibb.co/Xkfz5QKL/sua-logo-stepbook.png" alt="StepBook" style="height:14px;width:auto;object-fit:contain;filter:drop-shadow(0 0 4px rgba(212,175,55,0.4));" />
+        <span class="sc-logo-dot"></span>
+      </div>
+      <div class="sc-quote-text">Terminei o Cap. 7 de Atomic Habits com score 94 de domínio. A IA me confrontou 3× antes de liberar o próximo capítulo — e valeu cada vez.</div>
+      <div class="sc-footer">
+        <div class="sc-meta">
+          <span class="sc-chapter">Atomic Habits · James Clear</span>
+          <span class="sc-score">Score 94%</span>
+        </div>
+        <div class="sc-bar-track">
+          <div class="sc-bar-fill" style="width:94%"></div>
+        </div>
+        <div class="sc-linkedin-tag">stepbook.app</div>
+      </div>
+    </div>
 
-function baixarCofre(id) {
-  const c = cofre.find(x=>x.id===id);
-  if (!c) return;
-  const a = document.createElement("a");
-  a.href = c.arquivo; a.download = c.nomeArquivo||"documento";
-  a.click();
-}
+    <!-- Stories card 2 -->
+    <div class="share-card sc-stories-2 reveal d2">
+      <div class="sc-logo">
+        <img src="https://i.ibb.co/Xkfz5QKL/sua-logo-stepbook.png" alt="StepBook" style="height:14px;width:auto;object-fit:contain;filter:drop-shadow(0 0 4px rgba(212,175,55,0.4));" />
+        <span class="sc-logo-dot"></span>
+      </div>
+      <div class="sc-quote-mark">"</div>
+      <div class="sc-quote-text">Liderança exige presença antes de estratégia. Clareza interna precede toda decisão externa que realmente transforma.</div>
+      <div class="sc-footer">
+        <div class="sc-meta">
+          <span class="sc-chapter">Simon Sinek · Cap. 4</span>
+          <span class="sc-score">87%</span>
+        </div>
+        <div class="sc-bar-track">
+          <div class="sc-bar-fill" style="width:87%"></div>
+        </div>
+      </div>
+    </div>
 
-async function deletarCofre(id) {
-  if (!confirm("Excluir documento do cofre?")) return;
-  // ALTERADO — deleta no Worker (D1 + R2)
-  if (currentUser?.id && !modoDemo) {
-    await api("DELETE", `/api/cofre/${id}`);
-  }
-  cofre = cofre.filter(c => c.id !== id);
-  saveCofre();
-  renderCofre();
-  showToast("🗑️ Documento removido");
-}
+  </div>
 
-// ═══════════════════════════════════════
-//  RELATÓRIOS
-// ═══════════════════════════════════════
-function renderRelatorioPreview() {
-  const pagos = pags.filter(p=>p.status==="pago");
-  const total = pagos.reduce((s,p)=>s+Number(p.valor),0);
-  document.getElementById("rel-cards").innerHTML = `
-    <div class="rel-card"><div class="rc-label">Total Registros</div><div class="rc-val">${pags.length}</div></div>
-    <div class="rel-card"><div class="rc-label">Confirmados</div><div class="rc-val">${pagos.length}</div></div>
-    <div class="rel-card"><div class="rc-label">Valor Total Pago</div><div class="rc-val" style="font-size:20px">${fmtMoeda(total)}</div></div>`;
+  <div style="position:relative">
+    <a href="/app" class="btn-quote reveal" style="text-decoration:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      <span>Gerar Meu Card de Progresso</span>
+    </a>
+  </div>
 
-  const actEl = document.getElementById("rel-actions");
-  const emptyEl = document.getElementById("rel-empty");
-  if (!pags.length) {
-    actEl.innerHTML = "";
-    emptyEl.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><p>Nenhum dado para gerar relatório.</p><button class="btn btn-g btn-sm" onclick="showView('adicionar')">Adicionar Pagamento</button></div>`;
-  } else {
-    emptyEl.innerHTML = "";
-    actEl.innerHTML = `
-      <button class="btn btn-n" onclick="gerarPDF('completo')">📄 Gerar PDF Completo</button>
-      <button class="btn btn-g" onclick="gerarPDF('mes')">📅 Gerar PDF do Mês Atual</button>`;
-  }
-}
+  <div class="quote-proof reveal">
+    <div class="qp-item"><div class="qp-num">9:16</div><div class="qp-label">Stories</div></div>
+    <div class="trust-sep" style="height:36px"></div>
+    <div class="qp-item"><div class="qp-num">1:1</div><div class="qp-label">LinkedIn</div></div>
+    <div class="trust-sep" style="height:36px"></div>
+    <div class="qp-item"><div class="qp-num">1×</div><div class="qp-label">Clique</div></div>
+    <div class="trust-sep" style="height:36px"></div>
+    <div class="qp-item"><div class="qp-num">∞</div><div class="qp-label">Alcance</div></div>
+  </div>
+</section>
 
-async function gerarPDF(tipo="completo") {
-  if (!pags.length) return showToast("⚠️ Nenhum dado para gerar relatório");
-  if (!window.jspdf) return showToast("⚠️ jsPDF não carregado");
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const u = getUserData();
-  const hoje = new Date();
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="footer-brand">
+    <div class="footer-logo-text"><img src="https://i.ibb.co/Xkfz5QKL/sua-logo-stepbook.png" alt="StepBook" style="height:44px;width:auto;object-fit:contain;filter:drop-shadow(0 0 8px rgba(212,175,55,0.5));" /></div>
+    <p class="footer-desc">O único leitor com IA que transforma compreensão em autoridade. Leitura ativa. Aprendizado real.</p>
+  </div>
+  <div class="footer-links">
+    <a href="#">Termos de Uso</a>
+    <a href="#">Política de Privacidade</a>
+    <a href="#">Suporte</a>
+    <a href="#">Blog</a>
+  </div>
+  <div class="footer-seal">
+    <div class="seal-row">
+      <div class="seal-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <span class="seal-text">Pagamento Seguro via Pix</span>
+    </div>
+    <div class="seal-row">
+      <div class="seal-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <span class="seal-text">Mercado Pago Certificado</span>
+    </div>
+  </div>
+  <div class="footer-copy">© 2025 StepBook · Todos os direitos reservados</div>
+</footer>
 
-  let dados = [...pags];
-  if (tipo==="mes") {
-    const mesAtual = String(hoje.getMonth()+1).padStart(2,"0");
-    const anoAtual = hoje.getFullYear().toString();
-    dados = dados.filter(p=>p.mesReferencia===mesAtual&&p.anoReferencia===anoAtual);
-    if (!dados.length) return showToast("⚠️ Nenhum pagamento no mês atual");
-  }
-  dados.sort((a,b)=>(b.anoReferencia+b.mesReferencia).localeCompare(a.anoReferencia+a.mesReferencia));
+<script>
+// Scroll reveal
+const els = document.querySelectorAll('.reveal');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.1 });
+els.forEach(el => obs.observe(el));
 
-  // Cabeçalho navy
-  doc.setFillColor(1,43,64);
-  doc.rect(0,0,210,38,"F");
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(18); doc.setFont(undefined,"bold");
-  doc.text("Relatório Pensão Check",105,16,{align:"center"});
-  doc.setFontSize(10); doc.setFont(undefined,"normal");
-  doc.text("Gerado em: "+hoje.toLocaleDateString("pt-BR"),105,26,{align:"center"});
-
-  // Dados do usuário
-  doc.setTextColor(50,50,50);
-  doc.setFontSize(11);
-  let y = 48;
-  doc.text("Responsável: "+(u.nome||"Demo User"),14,y); y+=7;
-  doc.text("E-mail: "+(u.email||""),14,y); y+=7;
-  doc.text("Plano: "+(u.plano||"free").toUpperCase(),14,y); y+=12;
-
-  // Resumo
-  const pagos2 = dados.filter(p=>p.status==="pago");
-  const totalPago = pagos2.reduce((s,p)=>s+Number(p.valor),0);
-  doc.setFillColor(240,253,244);
-  doc.rect(14,y-4,182,22,"F");
-  doc.setFontSize(10);
-  doc.text("Total de registros: "+dados.length,18,y+2);
-  doc.text("Pagamentos confirmados: "+pagos2.length,18,y+9);
-  doc.setFont(undefined,"bold");
-  doc.text("Valor total pago: "+fmtMoeda(totalPago),100,y+2);
-  doc.setFont(undefined,"normal");
-  y += 28;
-
-  // Cabeçalho tabela
-  doc.setFillColor(1,43,64);
-  doc.rect(14,y-4,182,10,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(9);
-  doc.text("Referência",18,y+2);
-  doc.text("Data",65,y+2);
-  doc.text("Valor",95,y+2);
-  doc.text("Forma",125,y+2);
-  doc.text("Status",165,y+2);
-  y += 10;
-
-  // Linhas
-  doc.setTextColor(50,50,50);
-  dados.forEach((p,i)=>{
-    if (y > 270) { doc.addPage(); y = 20; }
-    if (i%2===0) { doc.setFillColor(249,250,251); doc.rect(14,y-4,182,9,"F"); }
-    doc.setFontSize(9);
-    doc.text(mesRef(p.mesReferencia,p.anoReferencia).slice(0,18),18,y+1);
-    doc.text(fmtData(p.dataPagamento),65,y+1);
-    doc.text(fmtMoeda(p.valor),95,y+1);
-    doc.text(p.formaPagamento,125,y+1);
-    doc.setTextColor(p.status==="pago"?26:180, p.status==="pago"?122:100, p.status==="pago"?62:0);
-    doc.text(p.status==="pago"?"✓ Pago":"Pendente",165,y+1);
-    doc.setTextColor(50,50,50);
-    y += 9;
+// Bar fill animation on scroll
+const bars = document.querySelectorAll('.sc-bar-fill');
+const barObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      const width = e.target.style.width;
+      e.target.style.width = '0%';
+      setTimeout(() => { e.target.style.width = width; }, 100);
+    }
   });
+}, { threshold: 0.5 });
+bars.forEach(b => barObs.observe(b));
 
-  // Rodapé
-  doc.setFontSize(8); doc.setTextColor(150,150,150);
-  doc.text("Pensão Check — documento gerado automaticamente",105,290,{align:"center"});
-
-  const nome = tipo==="mes"?"relatorio-mes.pdf":"relatorio-completo.pdf";
-  doc.save(nome);
-  showToast("📥 PDF gerado com sucesso!");
+// Subtle mouse parallax on hero
+const heroH1 = document.querySelector('.hero h1');
+if(heroH1) {
+  window.addEventListener('mousemove', e => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 12;
+    const y = (e.clientY / window.innerHeight - 0.5) * 12;
+    heroH1.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+  });
 }
 
-// ═══════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════
-function loadConfig() {
-  const u = getUserData();
-  document.getElementById("cfg-nome").value  = u.nome  || "";
-  document.getElementById("cfg-email").value = u.email || "";
-  document.getElementById("cfg-lembrete").checked = !!u.lembretes;
-  // Plano
-  const pl = document.getElementById("plan-info");
-  const isPro = u.plano==="pro"&&u.planoValido&&new Date(u.planoValido)>new Date();
-  const dias = isPro ? Math.floor((new Date(u.planoValido)-new Date())/(1000*60*60*24)) :
-    Math.max(0, 90-Math.floor((new Date()-new Date(u.dataCadastro||new Date()))/(1000*60*60*24)));
-  pl.innerHTML = isPro
-    ? `<span class="plan-badge-big badge-pro">PRO ✓</span><span style="font-size:13px;color:var(--g700)">Válido por mais <strong>${dias}</strong> dias</span>`
-    : `<span class="plan-badge-big badge-free">FREE</span><span style="font-size:13px;color:var(--g700)">${dias>0?`<strong>${dias}</strong> dias restantes`:"Período gratuito encerrado"}</span>`;
-}
+// Score ring animation
+const scoreRing = document.getElementById('scoreRing');
+const scoreNum = document.getElementById('scoreNum');
+const ringObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      scoreRing.classList.add('animated');
+      // Animate number
+      let count = 0;
+      const target = 87;
+      const step = () => {
+        count = Math.min(count + 2, target);
+        scoreNum.textContent = count;
+        if(count < target) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+      ringObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+if(scoreRing) ringObs.observe(scoreRing);
 
-function salvarConfig() {
-  const u = getUserData();
-  u.nome  = document.getElementById("cfg-nome").value.trim() || u.nome;
-  u.email = document.getElementById("cfg-email").value.trim() || u.email;
-  u.lembretes = document.getElementById("cfg-lembrete").checked;
-  saveUserData(u);
-  atualizarSbUser();
-  showToast("✅ Configurações salvas!");
-}
-
-function renderBeneficiariosConfig() {
-  const u = getUserData();
-  const benefs = u.beneficiarios || [];
-  const el = document.getElementById("benef-config-list");
-  const AVATAR_COLORS = ["#012B40","#1A7A3E","#7C3AED","#DC2626","#D97706","#0891B2"];
-
-  if (!benefs.length) {
-    el.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 16px;background:var(--g50);border-radius:10px;text-align:center;border:1.5px dashed var(--g300)">
-        <span style="font-size:32px">👤</span>
-        <p style="font-size:13px;color:var(--g500);max-width:280px">Nenhum beneficiário cadastrado. Clique em <strong>Adicionar</strong> para incluir filhos, dependentes ou outros.</p>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = benefs.map((b,i)=>{
-    const cor = AVATAR_COLORS[i % AVATAR_COLORS.length];
-    const inicial = b.nome[0].toUpperCase();
-    const emoji = getAvatarLetter(b.nome);
-    const nascFormatado = b.nascimento ? fmtData(b.nascimento) : "—";
-    const inicioFormatado = b.inicio ? fmtData(b.inicio) : "—";
-    const anos = b.nascimento ? Math.floor((new Date()-new Date(b.nascimento))/(365.25*24*60*60*1000)) : null;
-    return `
-      <div class="benef-list-item">
-        <div style="width:44px;height:44px;border-radius:50%;background:${cor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0">${inicial}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:8px">
-            ${b.nome}
-            ${anos!==null?`<span class="benef-list-badge">${anos} anos</span>`:""}
-          </div>
-          <div style="font-size:12px;color:var(--g400);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap">
-            <span>🎂 Nasc.: ${nascFormatado}</span>
-            <span>📅 Pensão desde: ${inicioFormatado}</span>
-          </div>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="editarBeneficiario(${i})" title="Editar" style="color:var(--navy);border-color:var(--navy)">✏️</button>
-        <button class="btn btn-r btn-sm" onclick="removerBeneficiario(${i})" title="Remover">🗑️</button>
-      </div>`;
-  }).join("");
-}
-
-function toggleBenefForm(forceOpen) {
-  const f = document.getElementById("benef-form");
-  const btn = document.getElementById("btn-add-benef");
-  const isHidden = f.classList.contains("hidden");
-  const shouldOpen = forceOpen !== undefined ? forceOpen : isHidden;
-  f.classList.toggle("hidden", !shouldOpen);
-  if (btn) btn.textContent = shouldOpen ? "✕ Fechar" : "➕ Adicionar";
-  if (shouldOpen) {
-    document.getElementById("bf-nome").focus();
-    // Scroll to form
-    setTimeout(()=>f.scrollIntoView({behavior:"smooth",block:"nearest"}), 50);
-  } else {
-    // Reset form fields
-    ["bf-nome","bf-nasc","bf-inicio"].forEach(id=>{
-      const el=document.getElementById(id); if(el) el.value="";
-    });
-    document.getElementById("benef-form").dataset.editIdx = "";
-    const btnSalvar = document.getElementById("btn-benef-salvar");
-    if (btnSalvar) { btnSalvar.textContent = "✅ Salvar Beneficiário"; btnSalvar.disabled = true; }
-  }
-}
-
-function validateBenefForm() {
-  const nome = document.getElementById("bf-nome").value.trim();
-  const btn = document.getElementById("btn-benef-salvar");
-  if (btn) btn.disabled = nome.length < 2;
-}
-
-function editarBeneficiario(i) {
-  const u = getUserData();
-  const b = u.beneficiarios[i];
-  if (!b) return;
-  toggleBenefForm(true);
-  document.getElementById("bf-nome").value   = b.nome;
-  document.getElementById("bf-nasc").value   = b.nascimento || "";
-  document.getElementById("bf-inicio").value = b.inicio || "";
-  document.getElementById("benef-form").dataset.editIdx = i;
-  const btn = document.getElementById("btn-benef-salvar");
-  if (btn) { btn.textContent = "✏️ Atualizar Beneficiário"; btn.disabled = false; }
-  validateBenefForm();
-}
-
-function adicionarBeneficiario() {
-  const nome   = document.getElementById("bf-nome").value.trim();
-  const nasc   = document.getElementById("bf-nasc").value;
-  const inicio = document.getElementById("bf-inicio").value;
-  if (nome.length < 2) return showToast("⚠️ Informe o nome completo do beneficiário");
-  const u = getUserData();
-  if (!u.beneficiarios) u.beneficiarios = [];
-
-  const editIdx = document.getElementById("benef-form").dataset.editIdx;
-  const isEdit  = editIdx !== "" && editIdx !== undefined && editIdx !== null;
-
-  if (isEdit) {
-    const idx = parseInt(editIdx);
-    u.beneficiarios[idx] = {nome, nascimento:nasc, inicio};
-    saveUserData(u);
-    toggleBenefForm(false);
-    renderBeneficiariosConfig();
-    showToast("✏️ Beneficiário atualizado!");
-  } else {
-    // Verifica duplicata
-    if (u.beneficiarios.some(b=>b.nome.toLowerCase()===nome.toLowerCase()))
-      return showToast("⚠️ Já existe um beneficiário com este nome");
-    u.beneficiarios.push({nome, nascimento:nasc, inicio});
-    saveUserData(u);
-    toggleBenefForm(false);
-    renderBeneficiariosConfig();
-    showToast("✅ Beneficiário adicionado!");
-  }
-}
-
-function removerBeneficiario(i) {
-  const u = getUserData();
-  const nome = u.beneficiarios[i]?.nome || "este beneficiário";
-  if (!confirm(`Remover "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return;
-  u.beneficiarios.splice(i,1);
-  saveUserData(u);
-  // Fecha form se estava editando esse índice
-  const editIdx = document.getElementById("benef-form")?.dataset?.editIdx;
-  if (editIdx !== "" && parseInt(editIdx) === i) toggleBenefForm(false);
-  renderBeneficiariosConfig();
-  showToast("🗑️ Beneficiário removido");
-}
-
-function ativarLicenca() {
-  const key = document.getElementById("cfg-licenca").value.trim().toUpperCase();
-  if (key.length !== 12 || !/^[A-Z0-9]{12}$/.test(key))
-    return showToast("⚠️ Chave inválida. Deve ter 12 caracteres alfanuméricos.");
-  const u = getUserData();
-  u.plano = "pro";
-  u.planoValido = new Date(Date.now()+365*24*60*60*1000).toISOString();
-  saveUserData(u);
-  document.getElementById("cfg-licenca").value = "";
-  atualizarBadgePlano();
-  loadConfig();
-  showToast("🎉 Licença Pro ativada com sucesso!");
-}
-
-// ═══════════════════════════════════════
-//  INIT — Cloudflare Worker + Google GSI
-// ═══════════════════════════════════════
-window.onload = async () => {
-  // PWA — Web App Manifest
-  const manifest = {
-    name: "Pensão Check", short_name: "PensãoCheck",
-    description: "Controle de pagamentos de pensão alimentícia",
-    start_url: "./", display: "standalone", orientation: "portrait",
-    background_color: "#012B40", theme_color: "#012B40",
-    icons: [{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23012B40'/><text y='.85em' font-size='380' x='50%' text-anchor='middle'>⚖️</text></svg>", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
-  };
-  const mBlob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
-  const mLink = document.createElement("link");
-  mLink.rel = "manifest"; mLink.href = URL.createObjectURL(mBlob);
-  document.head.appendChild(mLink);
-
-  // PWA — Service Worker (cache-first, suporte offline)
-  if ("serviceWorker" in navigator) {
-    const swCode = `const CACHE="pensao-check-v3";const ASSETS=[self.location.href];self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));return res;})))});`;
-    const swBlob = new Blob([swCode], { type: "application/javascript" });
-    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
-  }
-
-  // ALTERADO — Restaura sessão do Google salva no localStorage
-  // (Google Identity Services não usa redirects — a sessão é salva localmente)
-  const savedSession = localStorage.getItem("pc_session");
-  if (savedSession) {
-    try {
-      currentUser = JSON.parse(savedSession);
-      modoDemo = false;
-      await goApp();
-      return;
-    } catch { localStorage.removeItem("pc_session"); }
-  }
-
-  // Sem sessão → tela de login
-  // Inicializa Google GSI silenciosamente para auto-select se disponível
-  if (!GOOGLE_CLIENT_ID.includes("SEU_GOOGLE") && window.google?.accounts?.id) {
-    google.accounts.id.initialize({
-      client_id:   GOOGLE_CLIENT_ID,
-      callback:    handleGoogleCredential,
-      auto_select: true  // tenta logar automaticamente se usuário já autorizou
-    });
-    google.accounts.id.prompt(); // One Tap silencioso
-  }
-};
 </script>
 </body>
 </html>
