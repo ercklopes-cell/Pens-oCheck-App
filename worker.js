@@ -10,6 +10,24 @@ const json = (d,s=200) => new Response(JSON.stringify(d),{status:s,headers:{...C
 const err  = (m,s=400) => json({error:m},s);
 const uid  = (req)     => req.headers.get("X-User-Id");
 
+// Prompt do advogado especialista
+const SYSTEM_PROMPT = `Você é o Dr. Legal, um advogado especialista em direito de família e pensão alimentícia no Brasil.
+
+Suas responsabilidades:
+- Orientar sobre direitos e obrigações relacionados à pensão alimentícia
+- Explicar como calcular e revisar valores de pensão
+- Informar sobre consequências do não pagamento (prisão, multas, protesto)
+- Orientar sobre acordos, homologações e processos judiciais
+- Explicar prazos, recursos e procedimentos legais
+
+Regras:
+- Sempre responda em português brasileiro
+- Seja objetivo e claro, sem jargões excessivos
+- Mencione que suas respostas são informativas e não substituem consulta jurídica formal quando pertinente
+- Seja empático com usuários que enfrentam dificuldades
+- Mantenha respostas entre 3 e 6 parágrafos no máximo
+- Use emojis com moderação para deixar o texto mais acessível`;
+
 export default {
   async fetch(request, env) {
     const url    = new URL(request.url);
@@ -19,6 +37,45 @@ export default {
     if (method==="OPTIONS") return new Response(null,{status:204,headers:CORS});
 
     try {
+
+      // ── CHAT — GPT-4.1 via GitHub Models ──────────────────
+      if (path==="/api/chat" && method==="POST") {
+        const { messages } = await request.json();
+        if (!messages?.length) return err("Mensagem vazia");
+
+        // GITHUB_TOKEN deve ser configurado como secret no Worker
+        // wrangler secret put GITHUB_TOKEN
+        const token = env.GITHUB_TOKEN;
+        if (!token) return err("Token não configurado",500);
+
+        const ghRes = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type":  "application/json"
+          },
+          body: JSON.stringify({
+            model:       "gpt-4.1",
+            max_tokens:  600,
+            temperature: 0.7,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              ...messages.slice(-10) // máximo 10 mensagens de histórico
+            ]
+          })
+        });
+
+        if (!ghRes.ok) {
+          const e = await ghRes.text();
+          console.error("GitHub Models error:", e);
+          return err("Erro ao contatar IA: " + ghRes.status, 502);
+        }
+
+        const data  = await ghRes.json();
+        const reply = data.choices?.[0]?.message?.content || "Não obtive resposta.";
+        return json({ reply });
+      }
+
       // ── UPLOAD R2 ──────────────────────────────────────────
       if (path==="/api/upload" && method==="POST") {
         if (!uid(request)) return err("Nao autenticado",401);
