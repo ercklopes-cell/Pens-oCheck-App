@@ -1,85 +1,50 @@
 const PAGES_URL = "https://pens-ocheck-app.pages.dev";
-
-const CORS = {
-  "Access-Control-Allow-Origin":  PAGES_URL,
-  "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type,X-User-Id"
-};
-
+const CORS = {"Access-Control-Allow-Origin":PAGES_URL,"Access-Control-Allow-Methods":"GET,POST,DELETE,OPTIONS","Access-Control-Allow-Headers":"Content-Type,X-User-Id"};
 const json = (d,s=200) => new Response(JSON.stringify(d),{status:s,headers:{...CORS,"Content-Type":"application/json"}});
 const err  = (m,s=400) => json({error:m},s);
 const uid  = (req)     => req.headers.get("X-User-Id");
 
-// Prompt do advogado especialista
-const SYSTEM_PROMPT = `Você é o Dr. Legal, um advogado especialista em direito de família e pensão alimentícia no Brasil.
+const SYSTEM_PROMPT = `Você é o Dr. Legal, assistente jurídico do app Pensão Check, especializado em pensão alimentícia e direito de família no Brasil.
 
-Suas responsabilidades:
-- Orientar sobre direitos e obrigações relacionados à pensão alimentícia
-- Explicar como calcular e revisar valores de pensão
-- Informar sobre consequências do não pagamento (prisão, multas, protesto)
-- Orientar sobre acordos, homologações e processos judiciais
-- Explicar prazos, recursos e procedimentos legais
+Personalidade: acolhedor, claro, empático, direto ao ponto, sem juridiquês.
+
+Especialidades: cálculo e revisão de pensão, direitos do alimentante e alimentado, consequências do não pagamento (prisão civil, protesto, negativação), ação de alimentos, ação revisional, execução (art. 528 CPC), desconto em folha, alimentos gravídicos, pensão para filhos maiores.
 
 Regras:
-- Sempre responda em português brasileiro
-- Seja objetivo e claro, sem jargões excessivos
-- Mencione que suas respostas são informativas e não substituem consulta jurídica formal quando pertinente
-- Seja empático com usuários que enfrentam dificuldades
-- Mantenha respostas entre 3 e 6 parágrafos no máximo
-- Use emojis com moderação para deixar o texto mais acessível`;
+- Responda sempre em português brasileiro
+- Máximo 180 palavras por resposta
+- Cite artigos de lei quando relevante
+- Oriente de forma prática e objetiva
+- Lembre que é orientação informativa, não substitui advogado
+- Se fugir do tema pensão/família, diga gentilmente que só atua nesses temas
+- Se houver urgência (risco de prisão), priorize orientação prática imediata`;
 
 export default {
   async fetch(request, env) {
-    const url    = new URL(request.url);
-    const path   = url.pathname;
-    const method = request.method;
-
+    const url=new URL(request.url), path=url.pathname, method=request.method;
     if (method==="OPTIONS") return new Response(null,{status:204,headers:CORS});
-
     try {
 
-      // ── CHAT — GPT-4.1 via GitHub Models ──────────────────
       if (path==="/api/chat" && method==="POST") {
-        const { messages } = await request.json();
-        if (!messages?.length) return err("Mensagem vazia");
-
-        // GITHUB_TOKEN deve ser configurado como secret no Worker
-        // wrangler secret put GITHUB_TOKEN
-        const token = env.GITHUB_TOKEN;
-        if (!token) return err("Token não configurado",500);
-
-        const ghRes = await fetch("https://models.inference.ai.azure.com/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + token,
-            "Content-Type":  "application/json"
-          },
-          body: JSON.stringify({
-            model:       "gpt-4.1",
-            max_tokens:  600,
-            temperature: 0.7,
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              ...messages.slice(-10) // máximo 10 mensagens de histórico
-            ]
-          })
+        const body=await request.json().catch(()=>({}));
+        const messages=body.messages;
+        if (!Array.isArray(messages)||!messages.length) return err("Mensagem vazia");
+        const token=env.GITHUB_TOKEN;
+        if (!token) return err("IA não configurada",503);
+        const ghRes=await fetch("https://models.inference.ai.azure.com/chat/completions",{
+          method:"POST",
+          headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+          body:JSON.stringify({model:"gpt-4.1",max_tokens:350,temperature:0.65,messages:[{role:"system",content:SYSTEM_PROMPT},...messages.slice(-12)]})
         });
-
-        if (!ghRes.ok) {
-          const e = await ghRes.text();
-          console.error("GitHub Models error:", e);
-          return err("Erro ao contatar IA: " + ghRes.status, 502);
-        }
-
-        const data  = await ghRes.json();
-        const reply = data.choices?.[0]?.message?.content || "Não obtive resposta.";
-        return json({ reply });
+        if (!ghRes.ok) { console.error("GitHub Models:",ghRes.status,await ghRes.text().catch(()=>"")); return err("Erro ao processar. Tente novamente.",502); }
+        const data=await ghRes.json();
+        const reply=data.choices?.[0]?.message?.content?.trim()||"Não obtive resposta agora.";
+        return json({reply});
       }
 
-      // ── UPLOAD R2 ──────────────────────────────────────────
       if (path==="/api/upload" && method==="POST") {
         if (!uid(request)) return err("Nao autenticado",401);
-        const fd=await request.formData(), file=fd.get("file");
+        const fd=await request.formData(),file=fd.get("file");
         if (!file) return err("Sem arquivo");
         const ext=file.name.split(".").pop()||"bin";
         const key=`${uid(request)}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -87,18 +52,14 @@ export default {
         return json({url:`${url.origin}/files/${key}`,key});
       }
 
-      // ── SERVIR ARQUIVO R2 ──────────────────────────────────
       if (path.startsWith("/files/") && method==="GET") {
         const key=path.replace("/files/","");
         const obj=await env.FILES.get(key);
         if (!obj) return new Response("Nao encontrado",{status:404});
-        const h=new Headers(CORS);
-        obj.writeHttpMetadata(h);
-        h.set("Cache-Control","public,max-age=31536000");
+        const h=new Headers(CORS); obj.writeHttpMetadata(h); h.set("Cache-Control","public,max-age=31536000");
         return new Response(obj.body,{headers:h});
       }
 
-      // ── USUÁRIO ────────────────────────────────────────────
       if (path==="/api/user") {
         if (!uid(request)) return err("Nao autenticado",401);
         if (method==="GET") {
@@ -113,7 +74,6 @@ export default {
         }
       }
 
-      // ── PAGAMENTOS ─────────────────────────────────────────
       if (path==="/api/pagamentos") {
         if (!uid(request)) return err("Nao autenticado",401);
         if (method==="GET") {
@@ -136,7 +96,6 @@ export default {
         return json({ok:true});
       }
 
-      // ── COFRE ──────────────────────────────────────────────
       if (path==="/api/cofre") {
         if (!uid(request)) return err("Nao autenticado",401);
         if (method==="GET") {
@@ -160,6 +119,6 @@ export default {
       }
 
       return err("Rota nao encontrada",404);
-    } catch(e) { return err("Erro interno: "+e.message,500); }
+    } catch(e) { console.error(e); return err("Erro interno: "+e.message,500); }
   }
 };

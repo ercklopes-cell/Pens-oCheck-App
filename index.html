@@ -63,11 +63,11 @@ html,body{height:100%;font-family:var(--font);background:var(--g50);color:var(--
 /* ── LOGIN ── */
 #screen-login{align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,#024a6e 100%);padding:20px}
 .login-box{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
-.logo-icon{width:52px;height:52px;border-radius:12px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+.login-logo{display:flex;align-items:center;justify-content:center;margin-bottom:28px}
+.logo-icon{width:110px;height:110px;border-radius:20px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent}
 .logo-icon img{width:100%;height:100%;object-fit:contain}
-.logo-text{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
-.logo-sub{font-size:11px;color:var(--g400);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.logo-text{display:none}
+.logo-sub{display:none}
 /* ── CHATBOT FLUTUANTE ── */
 #chat-fab{position:fixed;bottom:calc(80px + var(--safe-bottom) + 14px);right:18px;z-index:300;width:56px;height:56px;border-radius:50%;background:var(--navy);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(1,43,64,.45);display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s}
 #chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(1,43,64,.55)}
@@ -134,9 +134,11 @@ html,body{height:100%;font-family:var(--font);background:var(--g50);color:var(--
 #screen-app{flex-direction:row;min-height:100vh}
 .sidebar{width:258px;min-width:258px;background:var(--navy);min-height:100vh;position:fixed;left:0;top:0;z-index:50;display:flex;flex-direction:column;transition:transform .3s}
 .sidebar.closed{transform:translateX(-100%)}
-.sb-logo{display:flex;align-items:center;gap:10px;padding:18px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.sb-logo-icon{width:38px;height:38px;border-radius:9px;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center}
+.sb-logo{display:flex;align-items:center;justify-content:center;padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo-icon{width:64px;height:64px;border-radius:14px;overflow:hidden;flex-shrink:0;background:transparent;display:flex;align-items:center;justify-content:center}
 .sb-logo-icon img{width:100%;height:100%;object-fit:contain}
+.sb-logo-text{display:none}
+.sb-logo-sub{display:none}
 .sb-logo-text{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .sb-logo-sub{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px}
 .sb-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
@@ -455,11 +457,7 @@ tr:hover td{background:var(--g50)}
 <div id="screen-login" class="screen active">
   <div class="login-box">
     <div class="login-logo">
-      <div class="logo-icon"><img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Pensão Check" onerror="this.parentElement.textContent='⚖️'"/></div>
-      <div>
-        <div class="logo-text">Pensão Check</div>
-        <div class="logo-sub">Controle de Pagamentos</div>
-      </div>
+      <div class="logo-icon"><img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Pensão Check" onerror="this.style.display='none';this.parentElement.innerHTML='⚖️'"/></div>
     </div>
 
     <!-- NOVO — estado normal: botões de login -->
@@ -502,11 +500,7 @@ tr:hover td{background:var(--g50)}
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-logo">
-      <div class="sb-logo-icon"><img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Logo" onerror="this.parentElement.textContent='⚖️'"/></div>
-      <div>
-        <div class="sb-logo-text">Pensão Check</div>
-        <div class="sb-logo-sub">Painel</div>
-      </div>
+      <div class="sb-logo-icon"><img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Pensão Check" onerror="this.parentElement.textContent='⚖️'"/></div>
     </div>
     <nav class="sb-nav">
       <div class="sb-section">Principal</div>
