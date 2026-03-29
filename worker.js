@@ -25,6 +25,13 @@ export default {
     if (method==="OPTIONS") return new Response(null,{status:204,headers:CORS});
     try {
 
+      // ADMIN CRM — lista usuários com stats (requer X-Admin-Key)
+      if (path==="/api/admin" && method==="GET") {
+        if (request.headers.get("X-Admin-Key")!=="admin123") return err("Acesso negado",403);
+        const {results}=await env.DB.prepare("SELECT u.id,u.nome,u.email,u.plano,u.data_cadastro,u.data_inicio_pensao,u.beneficiarios,u.uploads_mes,COUNT(p.id) as total_pags,SUM(CASE WHEN p.status='pendente' THEN 1 ELSE 0 END) as pendentes FROM users u LEFT JOIN pagamentos p ON p.user_id=u.id GROUP BY u.id ORDER BY u.data_cadastro DESC").all();
+        return json(results);
+      }
+
       if (path==="/api/chat" && method==="POST") {
         const body=await request.json().catch(()=>({}));
         const messages=body.messages;

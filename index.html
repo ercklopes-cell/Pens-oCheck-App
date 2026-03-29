@@ -63,15 +63,18 @@ html,body{height:100%;font-family:var(--font);background:var(--g50);color:var(--
 /* ── LOGIN ── */
 #screen-login{align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,#024a6e 100%);padding:20px}
 .login-box{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.login-logo{display:flex;align-items:center;justify-content:center;margin-bottom:28px}
-.logo-icon{width:110px;height:110px;border-radius:20px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent}
-.logo-icon img{width:100%;height:100%;object-fit:contain}
+.login-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:24px;gap:0}
+.logo-icon{width:180px;height:180px;border-radius:0;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent;padding:0;box-shadow:none}
+.logo-icon img{width:100%;height:100%;object-fit:contain;display:block}
 .logo-text{display:none}
 .logo-sub{display:none}
+.btn-sair{background:#fff;color:#DC2626;border:1.5px solid #FCA5A5;font-weight:700}
+.btn-sair:hover{background:#FEF2F2;border-color:#DC2626}
+.btn-sair span{display:flex;align-items:center}
+@media(max-width:480px){.sair-txt{display:none}}
 /* ── CHATBOT FLUTUANTE ── */
-#chat-fab{position:fixed;bottom:calc(80px + var(--safe-bottom) + 14px);right:18px;z-index:300;width:56px;height:56px;border-radius:50%;background:var(--navy);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(1,43,64,.45);display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s}
-#chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(1,43,64,.55)}
-#chat-fab img{width:34px;height:34px;border-radius:50%;object-fit:contain}
+#chat-fab{position:fixed;bottom:calc(80px + var(--safe-bottom) + 14px);right:18px;z-index:300;width:56px;height:56px;border-radius:50%;background:var(--navy);border:2px solid rgba(255,255,255,.15);cursor:pointer;box-shadow:0 4px 20px rgba(1,43,64,.5);display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s}
+#chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(1,43,64,.6)}
 #chat-fab .chat-badge{position:absolute;top:0;right:0;width:14px;height:14px;background:#22c55e;border-radius:50%;border:2px solid #fff}
 #chat-window{position:fixed;bottom:calc(80px + var(--safe-bottom) + 82px);right:18px;z-index:300;width:340px;max-width:calc(100vw - 36px);background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden;transition:all .25s;transform-origin:bottom right}
 #chat-window.hidden{display:none}
@@ -130,17 +133,73 @@ html,body{height:100%;font-family:var(--font);background:var(--g50);color:var(--
 .upload-progress.show{display:flex}
 .upload-progress .up-spinner{width:18px;height:18px;border:2px solid var(--green-b);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
 
-/* ── APP LAYOUT ── */
+/* ── ADMIN CRM — tela separada, não interfere no app ── */
+#screen-admin{display:none;min-height:100vh;background:#0f172a;flex-direction:column}
+#screen-admin.active{display:flex}
+.adm-login{display:flex;align-items:center;justify-content:center;flex:1;padding:20px}
+.adm-login-box{background:#1e293b;border-radius:16px;padding:36px;width:100%;max-width:360px;border:1px solid rgba(255,255,255,.08)}
+.adm-login-box h2{color:#f1f5f9;font-size:20px;font-weight:700;margin-bottom:6px}
+.adm-login-box p{color:#64748b;font-size:13px;margin-bottom:24px}
+.adm-input{width:100%;padding:11px 14px;background:#0f172a;border:1.5px solid rgba(255,255,255,.1);border-radius:9px;color:#f1f5f9;font-family:var(--font);font-size:14px;outline:none;margin-bottom:12px}
+.adm-input:focus{border-color:#3b82f6}
+.adm-btn{width:100%;padding:12px;background:#3b82f6;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}
+.adm-btn:hover{background:#2563eb}
+.adm-err{color:#f87171;font-size:12px;margin-top:8px;text-align:center;min-height:18px}
+.adm-dash{flex:1;display:flex;flex-direction:column}
+.adm-topbar{background:#1e293b;border-bottom:1px solid rgba(255,255,255,.07);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.adm-topbar-logo{display:flex;align-items:center;gap:10px}
+.adm-topbar-logo img{width:36px;height:36px;object-fit:contain;border-radius:8px}
+.adm-topbar h1{color:#f1f5f9;font-size:16px;font-weight:700}
+.adm-topbar-right{display:flex;align-items:center;gap:10px}
+.adm-tag{background:rgba(59,130,246,.2);color:#93c5fd;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid rgba(59,130,246,.3)}
+.adm-sair{background:none;border:1px solid rgba(255,255,255,.1);color:#94a3b8;padding:6px 14px;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.adm-sair:hover{background:rgba(239,68,68,.15);color:#fca5a5;border-color:rgba(239,68,68,.3)}
+.adm-content{padding:28px;flex:1;overflow-y:auto}
+.adm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.adm-stat{background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.07)}
+.adm-stat-val{font-size:28px;font-weight:800;color:#f1f5f9;letter-spacing:-.5px}
+.adm-stat-label{font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.adm-stat.blue .adm-stat-val{color:#60a5fa}
+.adm-stat.green .adm-stat-val{color:#34d399}
+.adm-stat.orange .adm-stat-val{color:#fb923c}
+.adm-section-title{color:#94a3b8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.adm-table-wrap{background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.07)}
+.adm-table{width:100%;border-collapse:collapse;font-size:13px}
+.adm-table thead tr{background:#0f172a}
+.adm-table th{padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.adm-table td{padding:13px 16px;border-top:1px solid rgba(255,255,255,.05);color:#cbd5e1;vertical-align:middle}
+.adm-table tr:hover td{background:rgba(255,255,255,.03)}
+.adm-badge-free{background:rgba(251,191,36,.15);color:#fbbf24;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid rgba(251,191,36,.2)}
+.adm-badge-pro{background:rgba(52,211,153,.15);color:#34d399;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid rgba(52,211,153,.2)}
+.adm-badge-pend{background:rgba(248,113,113,.15);color:#f87171;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.adm-badge-ok{background:rgba(52,211,153,.15);color:#34d399;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.adm-btn-detail{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.25);padding:5px 12px;border-radius:7px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.adm-btn-detail:hover{background:rgba(59,130,246,.3)}
+.adm-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:#64748b;font-size:13px}
+.adm-modal{position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.7)}
+.adm-modal.show{display:flex}
+.adm-modal-box{background:#1e293b;border-radius:16px;width:100%;max-width:520px;max-height:80vh;overflow-y:auto;border:1px solid rgba(255,255,255,.1)}
+.adm-modal-hdr{padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between}
+.adm-modal-hdr h3{color:#f1f5f9;font-size:15px;font-weight:700}
+.adm-modal-close{background:none;border:none;color:#64748b;font-size:20px;cursor:pointer}
+.adm-modal-close:hover{color:#f1f5f9}
+.adm-modal-body{padding:22px}
+.adm-detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.adm-detail-row:last-child{border-bottom:none}
+.adm-detail-label{color:#64748b;font-weight:600}
+.adm-detail-val{color:#cbd5e1;text-align:right;max-width:60%;word-break:break-all}
+#adm-header-link{display:none;align-items:center;gap:4px;padding:5px 10px;background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.25);border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
+#adm-header-link:hover{background:rgba(59,130,246,.3)}
+@media(max-width:768px){.adm-content{padding:16px}.adm-table-wrap{overflow-x:auto}.adm-table{min-width:600px}}
 #screen-app{flex-direction:row;min-height:100vh}
 .sidebar{width:258px;min-width:258px;background:var(--navy);min-height:100vh;position:fixed;left:0;top:0;z-index:50;display:flex;flex-direction:column;transition:transform .3s}
 .sidebar.closed{transform:translateX(-100%)}
-.sb-logo{display:flex;align-items:center;justify-content:center;padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.sb-logo-icon{width:64px;height:64px;border-radius:14px;overflow:hidden;flex-shrink:0;background:transparent;display:flex;align-items:center;justify-content:center}
+.sb-logo{display:flex;align-items:center;justify-content:center;padding:16px 16px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo-icon{width:150px;height:150px;border-radius:0;overflow:hidden;flex-shrink:0;background:transparent;display:flex;align-items:center;justify-content:center;padding:0}
 .sb-logo-icon img{width:100%;height:100%;object-fit:contain}
 .sb-logo-text{display:none}
 .sb-logo-sub{display:none}
-.sb-logo-text{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px}
-.sb-logo-sub{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px}
+/* linha duplicada removida */
 .sb-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
 .sb-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 4px;margin-top:8px}
 .sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;font-weight:500;transition:all .2s;border:none;background:none;width:100%;text-align:left;font-family:var(--font)}
@@ -361,6 +420,7 @@ tr:hover td{background:var(--g50)}
   .app-main { margin-left: 0; }
   .hdr-hamburger { display: flex; }
   #bottom-nav { display: flex; }
+  .hdr-sair-txt { display: none; }
   /* Add bottom padding so content doesn't hide behind nav */
   .app-cnt { padding: 16px 16px calc(80px + var(--safe-bottom)); }
   /* Layout fixes */
@@ -400,13 +460,15 @@ tr:hover td{background:var(--g50)}
 
 <!-- ══ CHATBOT FLUTUANTE ══ -->
 <button id="chat-fab" onclick="toggleChat()" aria-label="Abrir assistente jurídico">
-  <img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Chat" onerror="this.outerHTML='⚖️'"/>
+  <img src="https://i.ibb.co/BK5c9KH2/image-2f1b13e6-removebg-preview.png" alt="Dr. Legal" style="width:38px;height:38px;object-fit:contain;border-radius:50%" onerror="this.outerHTML='🛡️'"/>
   <span class="chat-badge"></span>
 </button>
 
 <div id="chat-window" class="hidden">
   <div class="chat-hdr">
-    <img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Dr. Legal" onerror="this.outerHTML='⚖️'"/>
+    <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+      <img src="https://i.ibb.co/BK5c9KH2/image-2f1b13e6-removebg-preview.png" alt="Dr. Legal" style="width:100%;height:100%;object-fit:contain" onerror="this.outerHTML='🛡️'"/>
+    </div>
     <div class="chat-hdr-info">
       <div class="chat-hdr-name">Dr. Legal — Assistente Jurídico</div>
       <div class="chat-hdr-status">Especialista em Pensão Alimentícia</div>
@@ -458,6 +520,10 @@ tr:hover td{background:var(--g50)}
   <div class="login-box">
     <div class="login-logo">
       <div class="logo-icon"><img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Pensão Check" onerror="this.style.display='none';this.parentElement.innerHTML='⚖️'"/></div>
+      <div style="text-align:center">
+        <div class="logo-text">Pensão Check</div>
+        <div class="logo-sub">Controle de Pagamentos</div>
+      </div>
     </div>
 
     <!-- NOVO — estado normal: botões de login -->
@@ -507,13 +573,13 @@ tr:hover td{background:var(--g50)}
       <button class="sb-item active" id="nav-dashboard"  onclick="showView('dashboard')"><span class="si">🏠</span> Dashboard</button>
       <button class="sb-item"        id="nav-adicionar"  onclick="showView('adicionar')"><span class="si">➕</span> Novo Pagamento</button>
       <button class="sb-item"        id="nav-historico"  onclick="showView('historico')"><span class="si">📋</span> Histórico</button>
-      <button class="sb-item"        id="nav-cofre"      onclick="showView('cofre')"><span class="si">🗂️</span> Cofre</button>
+      <button class="sb-item"        id="nav-cofre"      onclick="showView('cofre')"><span class="si">🔐</span> Cofre Digital</button>
       <button class="sb-item"        id="nav-relatorios" onclick="showView('relatorios')"><span class="si">📊</span> Relatórios</button>
       <button class="sb-item"        id="nav-config"     onclick="showView('config')"><span class="si">⚙️</span> Configurações</button>
       <div class="sb-suporte-wrap">
         <a class="sb-suporte-link verde" href="https://wa.me/SEU_NUMERO?text=Oi%2C+preciso+de+ajuda+no+Pens%C3%A3o+Check" target="_blank" rel="noopener">
-          <span class="si">💬</span>
-          <div class="sl-text"><span>Suporte 24H</span><small>WhatsApp – resposta imediata</small></div>
+          <span class="si">⚖️</span>
+          <div class="sl-text"><span>Suporte Advogado</span><small>09:00 às 17:00 – dias úteis</small></div>
         </a>
       </div>
     </nav>
@@ -524,7 +590,7 @@ tr:hover td{background:var(--g50)}
           <div class="sb-user-name" id="sb-nome">Demo</div>
           <div class="sb-user-email" id="sb-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6d090800022d1d08031e0c020e05080e06430e0200">[email&#160;protected]</a></div>
         </div>
-        <button class="sb-logout" onclick="doLogout()" title="Sair">🚪</button>
+        <button class="sb-logout" onclick="doLogout()" title="Sair da conta" style="display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;color:rgba(255,255,255,.5);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .2s;font-family:var(--font)" onmouseover="this.style.background='rgba(220,38,38,.25)';this.style.color='#fca5a5';this.style.borderColor='rgba(220,38,38,.4)'" onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.5)';this.style.borderColor='rgba(255,255,255,.1)'">🚪 Sair</button>
       </div>
     </div>
   </aside>
@@ -536,7 +602,12 @@ tr:hover td{background:var(--g50)}
       </div>
       <div class="hdr-right">
         <span id="hdr-badge" class="badge-free">FREE</span>
+        <!-- ADMIN CRM — link oculto, aparece só via URL #admin -->
+        <button id="adm-header-link" onclick="abrirAdmin()" title="Painel Admin">🔒 Admin</button>
         <button class="btn btn-g btn-sm" onclick="showView('adicionar')">➕ Novo</button>
+        <button class="btn btn-sair btn-sm" onclick="doLogout()" title="Sair da conta">
+          <span>🚪</span><span class="sair-txt">Sair</span>
+        </button>
       </div>
     </header>
 
@@ -661,7 +732,7 @@ tr:hover td{background:var(--g50)}
       <!-- ── COFRE ── -->
       <div class="vw hidden" id="view-cofre">
         <div class="cofre-form">
-          <div class="form-section-title" style="margin-bottom:16px">📁 Adicionar ao Cofre</div>
+          <div class="form-section-title" style="margin-bottom:16px">🔐 Adicionar ao Cofre Digital</div>
           <div class="form-grid">
             <div class="form-group">
               <label>Categoria</label>
@@ -680,9 +751,9 @@ tr:hover td{background:var(--g50)}
               <input type="file" id="cv-file" accept="image/*,.pdf" style="display:none" onchange="handleCofreUpload(event)"/>
             </div>
           </div>
-          <button class="btn btn-g" id="btn-cofre-salvar" onclick="salvarCofre()">🗂️ Salvar no Cofre</button>
+          <button class="btn btn-g" id="btn-cofre-salvar" onclick="salvarCofre()">🔐 Salvar no Cofre Digital</button>
         </div>
-        <div class="section-title">📦 Documentos Salvos</div>
+        <div class="section-title">🔐 Documentos Salvos</div>
         <div class="cofre-grid" id="cofre-grid"></div>
         <div id="cofre-empty"></div>
       </div>
@@ -779,13 +850,96 @@ tr:hover td{background:var(--g50)}
       <span class="bn-icon">📋</span><span class="bn-label">Histórico</span>
     </button>
     <button class="bn-item"        id="bn-cofre"      onclick="showView('cofre')">
-      <span class="bn-icon">🗂️</span><span class="bn-label">Cofre</span>
+      <span class="bn-icon">🔐</span><span class="bn-label">Cofre Digital</span>
     </button>
     <button class="bn-item"        id="bn-config"     onclick="showView('config')">
       <span class="bn-icon">⚙️</span><span class="bn-label">Conta</span>
     </button>
   </nav>
 </div><!-- /screen-app -->
+
+<!-- ═══════════════ ADMIN CRM ═══════════════ -->
+<!-- ADMIN CRM — rota #admin, protegida por senha -->
+<div id="screen-admin">
+
+  <!-- Modal de login admin -->
+  <div class="adm-login" id="adm-login-wrap">
+    <div class="adm-login-box">
+      <h2>🔒 Acesso Restrito</h2>
+      <p>Painel administrativo do Pensão Check. Acesso exclusivo.</p>
+      <input class="adm-input" type="password" id="adm-pwd" placeholder="Senha de acesso..."
+        onkeydown="if(event.key==='Enter')admLogin()"/>
+      <button class="adm-btn" onclick="admLogin()">Entrar no Painel</button>
+      <div class="adm-err" id="adm-err"></div>
+      <div style="margin-top:16px;text-align:center">
+        <button onclick="voltarApp()" style="background:none;border:none;color:#475569;font-family:var(--font);font-size:12px;cursor:pointer">← Voltar ao app</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard CRM (visível após login) -->
+  <div class="adm-dash hidden" id="adm-dashboard">
+    <!-- Topbar -->
+    <div class="adm-topbar">
+      <div class="adm-topbar-logo">
+        <img src="https://i.ibb.co/nN5XPxXx/Logo-da-Pensao-Check.png" alt="Logo" onerror="this.style.display='none'"/>
+        <h1>Pensão Check — CRM Admin</h1>
+      </div>
+      <div class="adm-topbar-right">
+        <span class="adm-tag">👑 Administrador</span>
+        <button class="adm-sair" onclick="voltarApp()">← Voltar ao App</button>
+        <button class="adm-sair" onclick="admLogout()">🚪 Sair</button>
+      </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="adm-content">
+      <!-- Cards de resumo -->
+      <div class="adm-stats" id="adm-stats">
+        <div class="adm-stat blue"><div class="adm-stat-val" id="adm-total">—</div><div class="adm-stat-label">Total Clientes</div></div>
+        <div class="adm-stat green"><div class="adm-stat-val" id="adm-pro">—</div><div class="adm-stat-label">Plano Pro</div></div>
+        <div class="adm-stat"><div class="adm-stat-val" id="adm-free">—</div><div class="adm-stat-label">Plano Free</div></div>
+        <div class="adm-stat orange"><div class="adm-stat-val" id="adm-pend">—</div><div class="adm-stat-label">Com Pendências</div></div>
+      </div>
+
+      <!-- Tabela clientes -->
+      <div class="adm-section-title">👥 Clientes Cadastrados</div>
+      <div class="adm-table-wrap">
+        <div class="adm-loading" id="adm-table-loading">
+          <div class="spinner" style="border-top-color:#3b82f6"></div>
+          Carregando clientes...
+        </div>
+        <table class="adm-table hidden" id="adm-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Cadastro</th>
+              <th>Plano</th>
+              <th>Pagamentos</th>
+              <th>Pendentes</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="adm-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal detalhe cliente -->
+  <div class="adm-modal" id="adm-modal-detalhe">
+    <div class="adm-modal-box">
+      <div class="adm-modal-hdr">
+        <h3 id="adm-modal-nome">Detalhe do Cliente</h3>
+        <button class="adm-modal-close" onclick="fecharDetalhe()">✕</button>
+      </div>
+      <div class="adm-modal-body" id="adm-modal-body"></div>
+    </div>
+  </div>
+
+</div><!-- /screen-admin -->
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ═══════════════════════════════════════
@@ -856,7 +1010,7 @@ const VT = {
   dashboard:  "Dashboard",
   adicionar:  "Novo Pagamento",
   historico:  "Histórico",
-  cofre:      "Cofre",
+  cofre:      "Cofre Digital",
   relatorios: "Relatórios",
   config:     "Configurações"
 };
@@ -1749,7 +1903,7 @@ function renderCofre() {
   const emptyEl = document.getElementById("cofre-empty");
   if (!cofre.length) {
     grid.innerHTML = "";
-    emptyEl.innerHTML = `<div class="empty"><div class="empty-icon">🗂️</div><p>Cofre vazio. Adicione documentos importantes.</p></div>`;
+    emptyEl.innerHTML = `<div class="empty"><div class="empty-icon">🔐</div><p>Cofre Digital vazio. Adicione documentos sensíveis com segurança.</p></div>`;
     return;
   }
   emptyEl.innerHTML = "";
@@ -2157,10 +2311,184 @@ async function enviarChat() {
   input.focus();
 }
 
+
+// ═══════════════════════════════════════
+// ADMIN CRM — painel administrativo
+// Acesso via URL: #admin ou botão oculto no header
+// ═══════════════════════════════════════
+const ADMIN_PASS = "admin123"; // ADMIN CRM — senha fixa
+let admLogado    = false;
+let admClientes  = [];
+
+// ADMIN CRM — abre tela admin (esconde app, mostra admin)
+function abrirAdmin() {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("screen-admin").classList.add("active");
+  document.getElementById("adm-pwd").value = "";
+  document.getElementById("adm-err").textContent = "";
+  if (admLogado) {
+    document.getElementById("adm-login-wrap").classList.add("hidden");
+    document.getElementById("adm-dashboard").classList.remove("hidden");
+    carregarClientesCRM();
+  } else {
+    document.getElementById("adm-login-wrap").classList.remove("hidden");
+    document.getElementById("adm-dashboard").classList.add("hidden");
+    setTimeout(() => document.getElementById("adm-pwd").focus(), 100);
+  }
+}
+
+// ADMIN CRM — login com senha
+async function admLogin() {
+  const pwd = document.getElementById("adm-pwd").value;
+  if (pwd !== ADMIN_PASS) {
+    document.getElementById("adm-err").textContent = "❌ Senha incorreta.";
+    document.getElementById("adm-pwd").value = "";
+    document.getElementById("adm-pwd").focus();
+    return;
+  }
+  admLogado = true;
+  document.getElementById("adm-login-wrap").classList.add("hidden");
+  document.getElementById("adm-dashboard").classList.remove("hidden");
+  await carregarClientesCRM();
+}
+
+// ADMIN CRM — logout do painel
+function admLogout() {
+  admLogado   = false;
+  admClientes = [];
+  document.getElementById("adm-login-wrap").classList.remove("hidden");
+  document.getElementById("adm-dashboard").classList.add("hidden");
+  document.getElementById("adm-pwd").value = "";
+}
+
+// ADMIN CRM — volta ao app normal
+function voltarApp() {
+  document.getElementById("screen-admin").classList.remove("active");
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("screen-app").classList.add("active");
+  window.location.hash = "";
+}
+
+// ADMIN CRM — carrega clientes do Worker /api/admin
+async function carregarClientesCRM() {
+  const loading = document.getElementById("adm-table-loading");
+  const table   = document.getElementById("adm-table");
+  loading.classList.remove("hidden");
+  table.classList.add("hidden");
+
+  try {
+    const res  = await fetch(WORKER_URL + "/api/admin", {
+      headers: { "X-Admin-Key": ADMIN_PASS }
+    });
+    const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      loading.textContent = "⚠️ Erro ao carregar: " + (data.error || "resposta inválida");
+      return;
+    }
+
+    admClientes = data;
+    renderCRM(data);
+  } catch(e) {
+    loading.textContent = "⚠️ Erro de conexão: " + e.message;
+  }
+}
+
+// ADMIN CRM — renderiza tabela e cards de resumo
+function renderCRM(clientes) {
+  const loading = document.getElementById("adm-table-loading");
+  const table   = document.getElementById("adm-table");
+  const tbody   = document.getElementById("adm-tbody");
+
+  // Cards de resumo
+  const total   = clientes.length;
+  const pro     = clientes.filter(c => c.plano === "pro").length;
+  const free    = total - pro;
+  const comPend = clientes.filter(c => c.pendentes > 0).length;
+
+  document.getElementById("adm-total").textContent = total;
+  document.getElementById("adm-pro").textContent   = pro;
+  document.getElementById("adm-free").textContent  = free;
+  document.getElementById("adm-pend").textContent  = comPend;
+
+  // Tabela
+  tbody.innerHTML = clientes.map((c, i) => {
+    const planBadge = c.plano === "pro"
+      ? '<span class="adm-badge-pro">PRO</span>'
+      : '<span class="adm-badge-free">FREE</span>';
+    const pendBadge = c.pendentes > 0
+      ? `<span class="adm-badge-pend">⚠️ ${c.pendentes}</span>`
+      : '<span class="adm-badge-ok">✓ Em dia</span>';
+    const cadastro = c.data_cadastro
+      ? new Date(c.data_cadastro).toLocaleDateString("pt-BR")
+      : "—";
+    return `<tr>
+      <td style="color:#475569;font-size:12px">${i+1}</td>
+      <td style="font-weight:600;color:#f1f5f9">${c.nome || "—"}</td>
+      <td style="color:#94a3b8;font-size:12px">${c.email || "—"}</td>
+      <td style="color:#64748b;font-size:12px">${cadastro}</td>
+      <td>${planBadge}</td>
+      <td style="text-align:center;color:#94a3b8">${c.total_pags || 0}</td>
+      <td style="text-align:center">${pendBadge}</td>
+      <td><button class="adm-btn-detail" onclick="verDetalheCliente(${i})">Ver detalhes</button></td>
+    </tr>`;
+  }).join("");
+
+  loading.classList.add("hidden");
+  table.classList.remove("hidden");
+}
+
+// ADMIN CRM — abre modal de detalhe do cliente
+function verDetalheCliente(idx) {
+  const c = admClientes[idx];
+  if (!c) return;
+  document.getElementById("adm-modal-nome").textContent = c.nome || "Cliente";
+
+  let benefs = "—";
+  try {
+    const b = typeof c.beneficiarios === "string" ? JSON.parse(c.beneficiarios) : (c.beneficiarios || []);
+    benefs = b.length ? b.map(x => x.nome).join(", ") : "Nenhum";
+  } catch { benefs = "—"; }
+
+  const cadastro    = c.data_cadastro ? new Date(c.data_cadastro).toLocaleDateString("pt-BR") : "—";
+  const inicioPensao = c.data_inicio_pensao
+    ? new Date(c.data_inicio_pensao).toLocaleDateString("pt-BR") : "—";
+
+  document.getElementById("adm-modal-body").innerHTML = `
+    <div class="adm-detail-row"><span class="adm-detail-label">ID</span><span class="adm-detail-val" style="font-size:11px">${c.id}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Nome</span><span class="adm-detail-val">${c.nome || "—"}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">E-mail</span><span class="adm-detail-val">${c.email || "—"}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Plano</span><span class="adm-detail-val">${c.plano === "pro" ? "✅ Pro" : "⭕ Free"}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Cadastro</span><span class="adm-detail-val">${cadastro}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Início da Pensão</span><span class="adm-detail-val">${inicioPensao}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Beneficiários</span><span class="adm-detail-val">${benefs}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Total Pagamentos</span><span class="adm-detail-val">${c.total_pags || 0}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Comprovantes Pendentes</span><span class="adm-detail-val" style="color:${c.pendentes > 0 ? '#f87171' : '#34d399'}">${c.pendentes > 0 ? "⚠️ " + c.pendentes + " pendente(s)" : "✓ Em dia"}</span></div>
+    <div class="adm-detail-row"><span class="adm-detail-label">Uploads este mês</span><span class="adm-detail-val">${c.uploads_mes || 0}</span></div>
+  `;
+  document.getElementById("adm-modal-detalhe").classList.add("show");
+}
+
+// ADMIN CRM — fecha modal detalhe
+function fecharDetalhe() {
+  document.getElementById("adm-modal-detalhe").classList.remove("show");
+}
+
+// ADMIN CRM — detecta hash #admin na URL para mostrar link no header
+function verificarHashAdmin() {
+  if (window.location.hash === "#admin") {
+    const link = document.getElementById("adm-header-link");
+    if (link) link.style.display = "flex";
+  }
+}
+
 // ═══════════════════════════════════════
 //  INIT — Cloudflare Worker + Google GSI
 // ═══════════════════════════════════════
 window.onload = async () => {
+  // ADMIN CRM — verifica hash #admin para mostrar link
+  verificarHashAdmin();
+  window.addEventListener("hashchange", verificarHashAdmin);
   // PWA — Web App Manifest
   const manifest = {
     name: "Pensão Check", short_name: "PensãoCheck",
